@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { LanguageProvider } from "./context/LanguageContext";
 import { ProductProvider } from "./context/ProductContext";
 import StorefrontLayout from "./components/StorefrontLayout";
@@ -28,6 +29,7 @@ function App() {
             </Route>
             <Route path="admin" element={<AdminPage />} />
           </Routes>
+          <SpeedInsights />
         </BrowserRouter>
       </ProductProvider>
     </LanguageProvider>
