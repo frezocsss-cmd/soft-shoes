@@ -411,41 +411,49 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#f3f4f0] text-slate-900 lg:grid lg:grid-cols-[250px_1fr]">
-      <aside className="hidden min-h-screen flex-col bg-[#191a16] p-6 text-white lg:fixed lg:inset-y-0 lg:flex lg:w-[250px]">
-        <BrandLogo inverted />
-        <p className="mt-2 pl-[52px] text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Store manager</p>
-        <nav className="mt-12 space-y-2">
-          <a href="#overview" className="flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 text-sm font-bold"><LayoutDashboard size={18} /> Boshqaruv paneli</a>
-          <a href="#products" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white/60 transition hover:bg-white/5 hover:text-white"><Package size={18} /> Mahsulotlar</a>
-          <a href={TELEGRAM_LINK} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white/60 transition hover:bg-white/5 hover:text-white"><MessageCircle size={18} /> Buyurtmalar <ExternalLink size={13} className="ml-auto" /></a>
+      <aside className="noise relative hidden min-h-screen flex-col overflow-hidden bg-[#191a16] p-6 text-white lg:fixed lg:inset-y-0 lg:flex lg:w-[250px]">
+        <div className="pointer-events-none absolute inset-0 grid-lines-dark opacity-50" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute -left-20 top-1/4 size-56 animate-drift rounded-full blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(181,138,69,0.3), transparent 70%)" }}
+          aria-hidden="true"
+        />
+        <div className="relative">
+          <BrandLogo inverted />
+          <p className="mt-2 pl-[52px] text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Store manager</p>
+        </div>
+        <nav className="relative mt-12 space-y-2">
+          <a href="#overview" className="fx-link flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 text-sm font-bold"><LayoutDashboard size={18} /> Boshqaruv paneli</a>
+          <a href="#products" className="fx-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white/60 transition hover:translate-x-1 hover:bg-white/5 hover:text-white"><Package size={18} /> Mahsulotlar</a>
+          <a href={TELEGRAM_LINK} target="_blank" rel="noreferrer" className="fx-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white/60 transition hover:translate-x-1 hover:bg-white/5 hover:text-white"><MessageCircle size={18} /> Buyurtmalar <ExternalLink size={13} className="ml-auto" /></a>
         </nav>
-        <div className="mt-auto rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="relative mt-auto rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="flex items-center gap-2 text-xs font-bold text-gold"><Send size={14} /> Telegram buyurtma</div>
           <p className="mt-2 text-[11px] leading-5 text-white/45">Yangi buyurtmalar faqat Telegram orqali qabul qilinadi.</p>
         </div>
-        <Link to="/" className="mt-4 flex items-center justify-center gap-2 rounded-full border border-white/15 px-4 py-3 text-xs font-bold text-white/70 transition hover:border-white/30 hover:text-white"><ExternalLink size={14} /> Saytni ko'rish</Link>
+        <Link to="/" className="relative mt-4 flex items-center justify-center gap-2 rounded-full border border-white/15 px-4 py-3 text-xs font-bold text-white/70 transition hover:-translate-y-0.5 hover:border-white/30 hover:text-white"><ExternalLink size={14} /> Saytni ko'rish</Link>
       </aside>
 
       <div className="lg:col-start-2">
         <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-[#f3f4f0]/90 backdrop-blur-xl">
           <div className="mx-auto flex h-20 max-w-[1500px] items-center justify-between px-4 sm:px-6 lg:px-10">
-            <div className="flex items-center justify-between gap-3 lg:hidden"><BrandLogo /><button type="button" onClick={handleSignOut} className="grid size-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600"><LogOut size={16} /></button></div>
+            <div className="flex items-center justify-between gap-3 lg:hidden"><BrandLogo /><button type="button" onClick={handleSignOut} className="grid size-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-red-200 hover:text-red-600"><LogOut size={16} /></button></div>
             <div className="hidden lg:block"><p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400">Soft Shoes / Admin</p><p className="mt-1 text-sm font-extrabold text-slate-900">Mahsulotlar boshqaruvi</p></div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={handleRefresh} disabled={operationBusy} className="grid size-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:text-slate-900 disabled:opacity-50" aria-label="Yangilash"><RefreshCw size={15} className={operationBusy ? "animate-spin" : ""} /></button>
+              <button type="button" onClick={handleRefresh} disabled={operationBusy} className="grid size-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:-translate-y-0.5 hover:border-[#b58a45] hover:text-[#b58a45] disabled:opacity-50" aria-label="Yangilash"><RefreshCw size={15} className={operationBusy ? "animate-spin" : ""} /></button>
               <button type="button" onClick={handleSignOut} className="hidden h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 transition hover:border-red-200 hover:text-red-600 sm:inline-flex"><LogOut size={15} /> Chiqish</button>
-              <Link to="/" className="inline-flex h-10 items-center gap-2 rounded-full bg-[#191a16] px-4 text-xs font-bold text-white transition hover:bg-[#59624a]">Sayt <ExternalLink size={14} /></Link>
+              <Link to="/" className="inline-flex h-10 items-center gap-2 rounded-full bg-[#191a16] px-4 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#59624a] hover:shadow-lift">Sayt <ExternalLink size={14} /></Link>
             </div>
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-4 py-7 sm:px-6 lg:px-10 lg:py-10">
+        <main className="animate-page-in mx-auto max-w-[1500px] px-4 py-7 sm:px-6 lg:px-10 lg:py-10">
           {notice && (
-            <div className={`fixed right-4 top-24 z-50 flex max-w-sm items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-xl sm:right-7 ${notice.type === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
+            <div className={`animate-pop fixed right-4 top-24 z-50 flex max-w-sm items-start gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-xl sm:right-7 ${notice.type === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
               {notice.type === "error" ? <TriangleAlert size={18} /> : <Save size={18} />}{notice.text}
             </div>
           )}
-          <div className={`mb-6 flex items-start gap-3 rounded-2xl border p-4 text-sm ${syncError ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-100 bg-emerald-50 text-emerald-800"}`}>
+          <div className={`reveal is-visible mb-6 flex items-start gap-3 rounded-2xl border p-4 text-sm ${syncError ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-100 bg-emerald-50 text-emerald-800"}`}>
             {syncError ? <TriangleAlert className="mt-0.5 shrink-0" size={18} /> : <Cloud className="mt-0.5 shrink-0" size={18} />}
             <div>
               <p><strong>Supabase ulangan:</strong> {session.user.email} sifatida kirgansiz. Qo‘shilgan mahsulotlar barcha mijozlarda ko‘rinadi.</p>
@@ -460,8 +468,12 @@ export default function AdminPage() {
               <p className="text-xs text-slate-400">Oxirgi yangilanish: {new Date().toLocaleDateString("uz-UZ")}</p>
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {stats.map(({ label, value, icon: Icon, color }) => (
-                <article key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              {stats.map(({ label, value, icon: Icon, color }, index) => (
+                <article
+                  key={label}
+                  style={{ animationDelay: `${index * 90}ms` }}
+                  className="animate-rise fx-glow fx-lift-soft rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                >
                   <div className="flex items-center justify-between"><span className={`grid size-10 place-items-center rounded-xl ${color}`}><Icon size={18} /></span><span className="font-display text-3xl font-semibold text-slate-900">{value}</span></div>
                   <p className="mt-4 text-xs font-bold text-slate-500">{label}</p>
                 </article>
@@ -506,10 +518,10 @@ export default function AdminPage() {
                       <thead><tr className="border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400"><th className="px-6 py-4">Product</th><th className="px-4 py-4">Price</th><th className="px-6 py-4 text-right">Amal</th></tr></thead>
                       <tbody>
                         {products.map((product) => (
-                          <tr key={product.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70">
-                            <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={product.image_url} alt={product.name} className="size-12 rounded-xl object-cover" /><p className="text-sm font-extrabold text-slate-900">{product.name}</p></div></td>
+                          <tr key={product.id} className="border-b border-slate-100 transition-colors duration-300 last:border-0 hover:bg-[#b58a45]/[0.06]">
+                            <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={product.image_url} alt={product.name} className="size-12 rounded-xl object-cover transition-transform duration-500 group-hover:scale-110" /><p className="text-sm font-extrabold text-slate-900">{product.name}</p></div></td>
                             <td className="px-4 py-4 text-xs font-extrabold text-slate-800">{formatPrice(product.price)} so'm</td>
-                            <td className="px-6 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => startEdit(product)} className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-[#b58a45] hover:text-[#b58a45]" aria-label="Tahrirlash"><Pencil size={15} /></button><button type="button" onClick={() => handleDelete(product)} className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600" aria-label="O'chirish"><Trash2 size={15} /></button></div></td>
+                            <td className="px-6 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => startEdit(product)} className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition-all duration-400 hover:-translate-y-0.5 hover:border-[#b58a45] hover:text-[#b58a45]" aria-label="Tahrirlash"><Pencil size={15} /></button><button type="button" onClick={() => handleDelete(product)} className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition-all duration-400 hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:text-red-600" aria-label="O'chirish"><Trash2 size={15} /></button></div></td>
                           </tr>
                         ))}
                       </tbody>

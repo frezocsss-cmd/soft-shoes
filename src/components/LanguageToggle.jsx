@@ -5,7 +5,7 @@ export default function LanguageToggle({ inverted = false }) {
 
   return (
     <div
-      className={`inline-flex rounded-full border p-1 ${
+      className={`relative inline-flex rounded-full border p-1 transition-all duration-500 ${
         inverted ? "border-white/15 bg-white/5" : "border-ink/10 bg-white"
       }`}
       aria-label="Tilni tanlash"
@@ -13,24 +13,34 @@ export default function LanguageToggle({ inverted = false }) {
       {[
         { code: "uz", label: "UZ" },
         { code: "ru", label: "RU" },
-      ].map((item) => (
-        <button
-          key={item.code}
-          type="button"
-          onClick={() => setLang(item.code)}
-          className={`rounded-full px-3 py-1 text-xs font-bold transition ${
-            lang === item.code
-              ? inverted
-                ? "bg-white text-ink"
-                : "bg-ink text-white"
-              : inverted
-                ? "text-white/60 hover:text-white"
-                : "text-muted hover:text-ink"
-          }`}
-        >
-          {item.label}
-        </button>
-      ))}
+      ].map((item) => {
+        const active = lang === item.code;
+        return (
+          <button
+            key={item.code}
+            type="button"
+            onClick={() => setLang(item.code)}
+            className={`relative z-10 rounded-full px-3 py-1 text-xs font-bold transition-colors duration-400 ${
+              active
+                ? inverted
+                  ? "text-ink"
+                  : "text-white"
+                : inverted
+                  ? "text-white/60 hover:text-white"
+                  : "text-muted hover:text-ink"
+            }`}
+          >
+            {active && (
+              <span
+                className={`absolute inset-0 -z-10 animate-pop rounded-full ${
+                  inverted ? "bg-white" : "bg-ink"
+                }`}
+              />
+            )}
+            {item.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

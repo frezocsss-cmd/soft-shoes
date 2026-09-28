@@ -81,10 +81,6 @@ export async function fetchRemoteProducts() {
 export async function createRemoteProduct(product) {
   const session = await requireAdminSession();
 
-  console.log("SESSION:", session);
-  console.log("USER:", session?.user);
-  console.log("EMAIL:", session?.user?.email);
-
   const storageFolder = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   let publicImageUrl;
   try {
