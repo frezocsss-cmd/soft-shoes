@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import { LanguageProvider } from "./context/LanguageContext";
 import { ProductProvider } from "./context/ProductContext";
 import StorefrontLayout from "./components/StorefrontLayout";
@@ -16,6 +17,7 @@ function App() {
     <LanguageProvider>
       <ProductProvider>
         <BrowserRouter>
+          <Analytics />
           <ScrollToTop />
           <Routes>
             <Route element={<StorefrontLayout />}>
