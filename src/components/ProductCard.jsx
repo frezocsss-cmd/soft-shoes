@@ -1,110 +1,105 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { TELEGRAM_LINK } from "../data/config";
 import { formatPrice } from "../data/productUtils";
-import TiltCard from "./motion/TiltCard";
-import Reveal from "./motion/Reveal";
-import MagneticButton from "./motion/MagneticButton";
 import ProductImage from "./ProductImage";
+import Reveal from "./motion/Reveal";
 
-export default function ProductCard({ product, index = 0 }) {
+const BADGES = {
+  uz: { new: "Yangi", bestseller: "Xit", limited: "Limit", sale: "Aksiya", details: "Batafsil", low: "Oz qoldi" },
+  ru: { new: "Новинка", bestseller: "Хит", limited: "Лимит", sale: "Скидка", details: "Подробнее", low: "Мало" },
+};
+
+export default function ProductCard({ product, index = 0, sizes }) {
   const { lang } = useLanguage();
-
   const isRussian = lang === "ru";
+  const copy = isRussian ? BADGES.ru : BADGES.uz;
+
   const name = product.name || (isRussian ? product.nameRu : product.nameUz);
-  const badge = isRussian
-    ? { new: "Новинка", bestseller: "Хит", limited: "Лимит", sale: "Скидка" }[product.badge]
-    : { new: "Yangi", bestseller: "Hit", limited: "Limit", sale: "Aksiya" }[product.badge];
-  const badgeStyle = product.badge === "sale" ? "bg-rose-100 text-rose-700" : "bg-white/90 text-ink";
-  const stockText =
-    product.stock != null && product.stock <= 3 ? (isRussian ? "Мало осталось" : "Oz qoldi") : null;
+  // `new` — ma'lumot bazasi badge ustuni yo'q paytda ProductContext qo'yadigan
+  // zaxira qiymat, shuning uchun u haqiqiy merchandising belgisi emas.
+  const badge = product.badge && product.badge !== "new" ? (copy[product.badge] ?? null) : null;
+  const isSale = product.badge === "sale";
+  const lowStock = product.stock != null && product.stock > 0 && product.stock <= 3;
+  const outOfStock = product.stock != null && product.stock <= 0;
 
   return (
     <Reveal
       as="article"
-      from="scale-up"
-      delay={Math.min(index, 7) * 90}
-      className="group flex flex-col"
+      from="up"
+      delay={Math.min(index, 7) * 55}
+      className="card card-hover group flex h-full flex-col overflow-hidden"
     >
-      <TiltCard
-        as={Link}
+      <Link
         to={`/products/${product.id}`}
-        max={8}
-        scale={1.015}
-        className="conic-ring group block overflow-hidden rounded-[1.35rem] bg-[#e9e5dc] shadow-card"
-        style={{ "--ring-speed": `${9 + (index % 4) * 2}s` }}
+        className="block"
+        aria-label={`${name} — ${copy.details}`}
       >
-        <div className="fx-zoom aspect-[4/5] overflow-hidden">
+        <div className="media aspect-[4/5]">
           <ProductImage
             product={product}
             alt={name}
-            className="sv-drift size-full"
-            sizes="(min-width: 1024px) 22vw, (min-width: 640px) 33vw, 45vw"
+            className="size-full transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+            sizes={sizes ?? "(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 40vw, 72vw"}
           />
-          {/* mobil'da ham ko'rinadigan sweep effekt */}
-          <span className="pointer-events-none absolute inset-0 scanline opacity-0 transition-opacity duration-500 group-hover:opacity-100" aria-hidden="true" />
+
+          {badge || lowStock ? (
+            <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-1.5">
+              {badge ? (
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] ${
+                    isSale ? "bg-rose-600 text-white" : "bg-white text-ink shadow-card"
+                  }`}
+                >
+                  {badge}
+                </span>
+              ) : null}
+              {lowStock ? (
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-amber-800">
+                  {copy.low}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
+      </Link>
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/25 via-transparent to-transparent opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
+      <div className="flex flex-1 flex-col p-4">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+          {product.category}
+        </p>
+        <h3 className="mt-1.5 line-clamp-2 text-[15px] font-extrabold leading-snug text-ink">
+          <Link to={`/products/${product.id}`} className="transition-colors duration-200 hover:text-gold">
+            {name}
+          </Link>
+        </h3>
 
-        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-          {badge && (
-            <span
-              className={`rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] shadow-sm transition-transform duration-500 group-hover:-translate-y-0.5 ${badgeStyle}`}
-            >
-              {badge}
-            </span>
-          )}
-          {stockText && (
-            <span className="rounded-full bg-orange-100 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-orange-700 shadow-sm">
-              {stockText}
-            </span>
-          )}
-        </div>
-
-        <span
-          className="orbit absolute bottom-4 right-4 grid size-11 place-items-center rounded-full bg-ink text-white opacity-0 shadow-lift transition-opacity duration-500 group-hover:opacity-100"
-          style={{ "--orbit-r": "0px" }}
-          aria-hidden="true"
-        >
-          <ArrowUpRight size={18} className="transition-transform duration-500 group-hover:rotate-45" />
-        </span>
-      </TiltCard>
-
-      <div className="flex flex-1 flex-col px-1 pt-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gold">{product.category}</p>
-            <h3 className="mt-2 text-base font-extrabold text-ink transition-colors duration-500 group-hover:text-gold">
-              {name}
-            </h3>
-          </div>
-          <p className="shrink-0 text-sm font-extrabold text-ink">
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="text-[17px] font-extrabold text-ink">
             {formatPrice(product.price)} <span className="text-[11px] font-semibold text-muted">so'm</span>
-          </p>
+          </span>
+          {product.oldPrice ? (
+            <span className="text-xs text-muted line-through">{formatPrice(product.oldPrice)}</span>
+          ) : null}
+          {outOfStock ? (
+            <span className="text-[11px] font-bold text-rose-600">
+              {isRussian ? "Нет в наличии" : "Tugagan"}
+            </span>
+          ) : null}
         </div>
 
-        <div className="mt-4 flex items-center gap-2">
-          <MagneticButton
-            as={Link}
-            to={`/products/${product.id}`}
-            strength={0.12}
-            className="beam h-10 flex-1 items-center justify-center rounded-full border border-ink/15 text-xs font-bold text-ink transition-all duration-500 hover:border-ink hover:bg-ink hover:text-white"
-          >
-            <span className="relative z-10">{isRussian ? "Подробнее" : "Batafsil"}</span>
-          </MagneticButton>
-          <MagneticButton
+        <div className="mt-auto flex gap-2 pt-4">
+          <Link to={`/products/${product.id}`} className="btn btn-outline btn-sm flex-1">
+            {copy.details}
+          </Link>
+          <a
             href={TELEGRAM_LINK}
-            strength={0.22}
             aria-label={`${name} — Telegram orqali buyurtma`}
-            className="group/tg size-10 shrink-0 items-center justify-center rounded-full bg-ink text-white transition-all duration-500 hover:bg-olive"
+            className="btn btn-primary btn-sm px-3"
           >
-            <MessageCircle
-              size={16}
-              className="relative z-10 transition-transform duration-500 group-active:rotate-12 group-active:scale-110"
-            />
-          </MagneticButton>
+            <MessageCircle size={15} aria-hidden="true" />
+          </a>
         </div>
       </div>
     </Reveal>
