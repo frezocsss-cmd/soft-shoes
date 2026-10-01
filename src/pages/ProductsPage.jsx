@@ -10,7 +10,7 @@ import ScrambleText from "../components/motion/ScrambleText";
 import CharFlip from "../components/motion/CharFlip";
 import CountUp from "../components/motion/CountUp";
 import MagneticButton from "../components/motion/MagneticButton";
-import { useParallax } from "../hooks/useScroll";
+import { useParallax } from "../hooks/useScrollMotion";
 
 export default function ProductsPage() {
   const { lang } = useLanguage();

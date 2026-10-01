@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -24,8 +24,9 @@ import ScrambleText from "../components/motion/ScrambleText";
 import CharFlip from "../components/motion/CharFlip";
 import StickyRail from "../components/motion/StickyRail";
 import PinnedScene from "../components/motion/PinnedScene";
-import { useParallax, useScrollY } from "../hooks/useScroll";
-import { useHeroFade } from "../hooks/useElementHeight";
+import ProductImage from "../components/ProductImage";
+import { useParallax } from "../hooks/useScrollMotion";
+import { subscribeFrame } from "../lib/scrollEngine";
 
 export default function HomePage() {
   const { lang } = useLanguage();
@@ -34,9 +35,48 @@ export default function HomePage() {
   const featured = products.filter((product) => product.featured).slice(0, 4);
   const displayProducts = featured.length ? featured : products.slice(0, 4);
   const hero = products[0];
-  const scrollY = useScrollY();
   const heroRef = useRef(null);
-  const heroFade = useHeroFade(heroRef, scrollY);
+
+  /**
+   * Hero fade/parallax — avval `useScrollY()` har kadrda setState
+   * qilib butun HomePage'ni qayta render qilardi. Endi markaziy
+   * scrollEngine'dan olingan qiymat to'g'ridan-to'g'ri DOM
+   * uslubiga yoziladi (transform + opacity).
+   */
+  useEffect(() => {
+    const node = heroRef.current;
+    if (!node) return undefined;
+    let height = 0;
+    let pendingTransform = "";
+    let pendingOpacity = "";
+
+    const measure = () => {
+      height = node.getBoundingClientRect().height;
+    };
+    measure();
+
+    let observer;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(measure);
+      observer.observe(node);
+    }
+
+    return subscribeFrame({
+      read: ({ y }) => {
+        if (!height) measure();
+        if (!height) return;
+        const progress = Math.min(1, Math.max(0, y / (height * 0.85)));
+        pendingOpacity = (1 - progress * 0.55).toFixed(3);
+        pendingTransform =
+          progress < 1 ? `translate3d(0, ${(y * 0.16).toFixed(1)}px, 0)` : "translate3d(0, 0, 0)";
+      },
+      write: () => {
+        if (!pendingOpacity) return;
+        node.style.opacity = pendingOpacity;
+        node.style.transform = pendingTransform;
+      },
+    });
+  }, []);
 
   const heroVisualRef = useParallax(70);
   const heroGlowRef = useParallax(-40);
@@ -47,21 +87,21 @@ export default function HomePage() {
     {
       title: lang === "ru" ? "Мужская коллекция" : "Erkaklar kolleksiyasi",
       caption: lang === "ru" ? "Классика и комфорт" : "Klassik va qulaylik",
-      image: products[1]?.image || products[0]?.image,
+      product: products[1] ?? products[0],
       to: "/products?category=Erkaklar",
       span: "col-span-6 md:col-span-4",
     },
     {
       title: lang === "ru" ? "Женская коллекция" : "Ayollar kolleksiyasi",
       caption: lang === "ru" ? "Нежные образы" : "Nafis va yumshoq",
-      image: products[2]?.image || products[0]?.image,
+      product: products[2] ?? products[0],
       to: "/products?category=Ayollar",
       span: "col-span-6 md:col-span-4",
     },
     {
       title: lang === "ru" ? "Unisex" : "Unisex kollektsiya",
       caption: lang === "ru" ? "Свобода стиля" : "Stil chegarasi yo'q",
-      image: products[4]?.image || products[0]?.image,
+      product: products[4] ?? products[0],
       to: "/products?category=Unisex",
       span: "col-span-12 md:col-span-4",
     },
@@ -95,11 +135,7 @@ export default function HomePage() {
       {/* ================= 1. HERO ================= */}
       <section
         ref={heroRef}
-        className="noise relative overflow-hidden"
-        style={{
-          transform: heroFade < 1 ? `translate3d(0, ${(scrollY * 0.16).toFixed(1)}px, 0)` : undefined,
-          opacity: heroFade.toFixed(3),
-        }}
+        className="noise relative overflow-hidden will-change-transform"
       >
         {/* ambient blob morph + glow */}
         <div
@@ -190,7 +226,14 @@ export default function HomePage() {
               >
                 <div className="fx-zoom aspect-[0.92] overflow-hidden">
                   {hero ? (
-                    <img src={hero.image} alt={hero.nameUz} className="sv-drift size-full object-cover" />
+                    <ProductImage
+                      product={hero}
+                      alt={hero.nameUz}
+                      className="sv-drift size-full"
+                      sizes="(min-width: 1024px) 52vw, 92vw"
+                      priority
+                      rootMargin="600px"
+                    />
                   ) : (
                     <div className="grid size-full place-items-center text-sm text-muted">Soft Shoes</div>
                   )}
@@ -294,8 +337,13 @@ export default function HomePage() {
               >
                 <Link to={category.to} className="press relative block h-full">
                   <div className="fx-zoom aspect-[0.92] overflow-hidden">
-                    {category.image ? (
-                      <img src={category.image} alt="" loading="lazy" className="sv-drift size-full object-cover" />
+                    {category.product ? (
+                      <ProductImage
+                        product={category.product}
+                        alt=""
+                        className="sv-drift size-full"
+                        sizes="(min-width: 768px) 32vw, 90vw"
+                      />
                     ) : null}
                   </div>
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent transition-opacity duration-700 group-hover:from-ink/90" />
@@ -396,7 +444,7 @@ export default function HomePage() {
             <div className="conic-ring group relative overflow-hidden rounded-[2rem] bg-[#dedbd1] shadow-soft" style={{ "--ring-speed": "11s" }}>
               <div className="fx-zoom aspect-[0.86] overflow-hidden">
                 {products[3] ? (
-                  <img src={products[3].image} alt={t.home.storyEyebrow} loading="lazy" className="sv-drift size-full object-cover" />
+                  <ProductImage product={products[3]} alt={t.home.storyEyebrow} className="sv-drift size-full" sizes="(min-width: 1024px) 34vw, 90vw" />
                 ) : null}
               </div>
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/30 to-transparent" />
@@ -497,7 +545,7 @@ export default function HomePage() {
           <div ref={storeRef} className="relative min-h-[320px] overflow-hidden lg:min-h-[440px]">
             <div className="sv-drift absolute inset-0">
               {products[4] ? (
-                <img src={products[4].image} alt={t.home.storeEyebrow} loading="lazy" className="size-full object-cover" />
+                <ProductImage product={products[4]} alt={t.home.storeEyebrow} className="size-full" sizes="(min-width: 1024px) 52vw, 100vw" />
               ) : null}
             </div>
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/55 to-transparent" />

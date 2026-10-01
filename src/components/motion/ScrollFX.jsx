@@ -1,34 +1,24 @@
 import { useEffect } from "react";
-import { useScrollVelocity } from "../../hooks/useScrollMotion";
 import { usePrefersReducedMotion } from "../../hooks/useInView";
+import { useScrollVelocityVar } from "../../hooks/useScrollMotion";
 
 /**
  * Global scroll effektlari boshqaruvchisi.
  *
- * 1) Scroll tezligini CSS var --velocity / --vel-y / --ring-speed ga yozadi
- *    (vel-skew, vel-lag, conic halqa tezligi shundan foydalanadi).
- * 2) Faqat ekranda ko'rinayotgan .conic-ring elementlarini aylantiradi —
- *    offscreen halqalar to'xtaydi, bu mobil'da GPU yukini kesadi.
+ * 1) Scroll tezligini CSS var --velocity / --vel-y ga yozadi
+ *    (vel-skew, vel-lag shundan foydalanadi). Bitta markaziy
+ *    scrollEngine loop'idan olinadi — qo'shimcha listener yo'q.
+ * 2) Faqat ekranda ko'rinayotgan .conic-ring elementlarini aylantiradi.
+ *    Yangi kartalar MutationObserver orqali topiladi (avval har
+ *    1.2 soniyada butun DOM skan qilinardi).
  */
 export default function ScrollFX() {
-  const velocity = useScrollVelocity();
   const reduced = usePrefersReducedMotion();
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const v = reduced ? 0 : velocity;
-
-    root.style.setProperty("--velocity", v.toFixed(4));
-    root.style.setProperty("--vel-y", `${(v * -14).toFixed(2)}px`);
-    root.style.setProperty("--ring-speed", `${(6 - Math.abs(v) * 2.4).toFixed(2)}s`);
-  }, [velocity, reduced]);
+  useScrollVelocityVar(typeof document === "undefined" ? null : document.documentElement);
 
   useEffect(() => {
     if (reduced) return undefined;
-    if (typeof IntersectionObserver === "undefined") {
-      document.querySelectorAll(".conic-ring").forEach((n) => n.classList.add("ring-live"));
-      return undefined;
-    }
+    if (typeof IntersectionObserver === "undefined") return undefined;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -36,20 +26,34 @@ export default function ScrollFX() {
           entry.target.classList.toggle("ring-live", entry.isIntersecting);
         });
       },
-      { rootMargin: "120px 0px", threshold: 0.01 }
+      { rootMargin: "120px 0px", threshold: 0.01 },
     );
 
     const scan = () => {
-      observer.disconnect();
-      document.querySelectorAll(".conic-ring").forEach((node) => observer.observe(node));
+      document.querySelectorAll(".conic-ring:not([data-ring-seen])").forEach((node) => {
+        node.dataset.ringSeen = "true";
+        observer.observe(node);
+      });
     };
 
-    scan();
-    /* yangi sahifaga o'tganda yangi kartalar topiladi */
-    const timer = setInterval(scan, 1200);
+    /* DOM tez-tez o'zgarganda (route o'tishi, kartochka qo'shish)
+       skan har mutation'da emas, kadrga bittadan yig'ilib bajariladi. */
+    let queued = 0;
+    const schedule = () => {
+      if (queued) return;
+      queued = requestAnimationFrame(() => {
+        queued = 0;
+        scan();
+      });
+    };
+
+    schedule();
+    const mutations = new MutationObserver(schedule);
+    mutations.observe(document.body, { childList: true, subtree: true });
     return () => {
-      clearInterval(timer);
+      mutations.disconnect();
       observer.disconnect();
+      if (queued) cancelAnimationFrame(queued);
     };
   }, [reduced]);
 

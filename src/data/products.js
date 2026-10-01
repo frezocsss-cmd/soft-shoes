@@ -1,13 +1,15 @@
-import img1 from "../assets/photo_2026-09-14_17-53-15.jpg";
-import img2 from "../assets/photo_2026-09-14_17-53-21.jpg";
-import img3 from "../assets/photo_2026-09-14_17-53-33.jpg";
-import img4 from "../assets/photo_2026-09-14_17-54-41.jpg";
-import img5 from "../assets/photo_2026-09-14_17-54-46.jpg";
-
+/**
+ * Mahsulot rasmlari — endi optimallashtirilgan webp variantlar
+ * (scripts/optimize-images.mjs) orqali yuklanadi.
+ *
+ * `image` — endi fayl nomi (manifest kaliti), masalan
+ * "photo_2026-09-14_17-53-15". ProductContext uni `imageName` va
+ * tayyor `image_url` ga bo'ladi; SmartImage shundan foydalanadi.
+ */
 export const products = [
   {
     id: "aurora-loaferlar",
-    image: img1,
+    image: "photo_2026-09-14_17-53-15",
     nameUz: "Aurora Loaferlar",
     nameRu: "Лоферы Aurora",
     descriptionUz: "Yumshoq charm, nafis detal va har kuni uchun klassik uslub.",
@@ -23,10 +25,10 @@ export const products = [
   },
   {
     id: "noir-klassik",
-    image: img2,
+    image: "photo_2026-09-14_17-53-21",
     nameUz: "Noir Klassik",
     nameRu: "Классика Noir",
-    descriptionUz: "Qora Rangdagi zamonaviy model ofis va shahar uchun.",
+    descriptionUz: "Qora rangdagi zamonaviy model ofis va shahar uchun.",
     descriptionRu: "Современная чёрная модель для офиса и города.",
     price: 560000,
     oldPrice: 620000,
@@ -39,7 +41,7 @@ export const products = [
   },
   {
     id: "baxmal-touch",
-    image: img3,
+    image: "photo_2026-09-14_17-53-33",
     nameUz: "Baxmal Touch",
     nameRu: "Бархат Touch",
     descriptionUz: "Velvet qoplamali premium poyabzal, maxsus seriya.",
@@ -55,7 +57,7 @@ export const products = [
   },
   {
     id: "funguq-yurishi",
-    image: img4,
+    image: "photo_2026-09-14_17-54-41",
     nameUz: "Funguq Yurishi",
     nameRu: "Шаг Фундук",
     descriptionUz: "Issiq taupe rang va kundalik uchun maksimal qulaylik.",
@@ -71,7 +73,7 @@ export const products = [
   },
   {
     id: "ivori-najib",
-    image: img5,
+    image: "photo_2026-09-14_17-54-46",
     nameUz: "Ivori Najib",
     nameRu: "Ивори Надж",
     descriptionUz: "Yengil bej klassik model har bir garderobga moslashadi.",

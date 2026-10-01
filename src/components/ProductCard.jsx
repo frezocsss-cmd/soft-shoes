@@ -6,6 +6,7 @@ import { formatPrice } from "../data/productUtils";
 import TiltCard from "./motion/TiltCard";
 import Reveal from "./motion/Reveal";
 import MagneticButton from "./motion/MagneticButton";
+import ProductImage from "./ProductImage";
 
 export default function ProductCard({ product, index = 0 }) {
   const { lang } = useLanguage();
@@ -35,7 +36,12 @@ export default function ProductCard({ product, index = 0 }) {
         style={{ "--ring-speed": `${9 + (index % 4) * 2}s` }}
       >
         <div className="fx-zoom aspect-[4/5] overflow-hidden">
-          <img src={product.image_url} alt={name} className="sv-drift size-full object-cover" loading="lazy" />
+          <ProductImage
+            product={product}
+            alt={name}
+            className="sv-drift size-full"
+            sizes="(min-width: 1024px) 22vw, (min-width: 640px) 33vw, 45vw"
+          />
           {/* mobil'da ham ko'rinadigan sweep effekt */}
           <span className="pointer-events-none absolute inset-0 scanline opacity-0 transition-opacity duration-500 group-hover:opacity-100" aria-hidden="true" />
         </div>

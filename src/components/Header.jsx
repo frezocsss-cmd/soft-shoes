@@ -6,6 +6,7 @@ import { MAPS_LINK, TELEGRAM_LINK } from "../data/config";
 import BrandLogo from "./BrandLogo";
 import LanguageToggle from "./LanguageToggle";
 import MagneticButton from "./motion/MagneticButton";
+import { subscribeScroll } from "../lib/scrollEngine";
 
 export default function Header() {
   const { lang } = useLanguage();
@@ -42,20 +43,13 @@ export default function Header() {
   ];
 
   useEffect(() => {
-    let frame = 0;
-    const compute = () => {
-      frame = 0;
-      setScrolled(window.scrollY > 24);
-    };
-    const onScroll = () => {
-      if (!frame) frame = window.requestAnimationFrame(compute);
-    };
-    compute();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      if (frame) window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", onScroll);
-    };
+    let scrolledState = null;
+    return subscribeScroll(({ y }) => {
+      const next = y > 24;
+      if (next === scrolledState) return;
+      scrolledState = next;
+      setScrolled(next);
+    });
   }, []);
 
   useEffect(() => {

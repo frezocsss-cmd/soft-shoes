@@ -15,46 +15,46 @@ export default function PinnedScene({
   style,
   height = "220vh",
 }) {
-  const [ref, progress] = useElementScrollProgress();
   const reduced = usePrefersReducedMotion();
   const fine = useFinePointer();
   const pinned = fine && !reduced;
 
-  const resolved = { transform: "none", opacity: 1, ...(style || {}) };
-  if (pinned && progressMap?.length) {
-    const sorted = [...progressMap].sort((a, b) => a.at - b.at);
-    const first = sorted[0];
-    const last = sorted[sorted.length - 1];
-    let segment = first;
-    let local = 0;
-    if (progress <= first.at) {
-      segment = first;
-      local = 0;
-    } else if (progress >= last.at) {
-      segment = last;
-      local = 1;
-    } else {
-      for (let i = 0; i < sorted.length - 1; i += 1) {
-        const a = sorted[i];
-        const b = sorted[i + 1];
-        if (progress >= a.at && progress <= b.at) {
-          segment = a;
-          local = (progress - a.at) / Math.max(0.0001, b.at - a.at);
-          break;
+  const ref = useElementScrollProgress({
+    apply: (progress, node) => {
+      const stage = node.firstElementChild?.firstElementChild;
+      if (!stage || !progressMap?.length) return;
+
+      const sorted = [...progressMap].sort((a, b) => a.at - b.at);
+      const first = sorted[0];
+      const last = sorted[sorted.length - 1];
+
+      let index = 0;
+      if (progress <= first.at) {
+        index = 0;
+      } else if (progress >= last.at) {
+        index = sorted.length - 1;
+      } else {
+        for (let i = 0; i < sorted.length - 1; i += 1) {
+          if (progress >= sorted[i].at && progress <= sorted[i + 1].at) {
+            index = i;
+            break;
+          }
         }
       }
-    }
-    const interpolate = (prop, fallback) => {
-      const from = segment[prop] ?? fallback;
-      const to = sorted[Math.min(sorted.indexOf(segment) + 1, sorted.length - 1)][prop] ?? from;
-      if (typeof from === "number" && typeof to === "number") {
-        return from + (to - from) * local;
-      }
-      return local > 0.5 ? to : from;
-    };
-    resolved.transform = interpolate("transform", "none");
-    resolved.opacity = interpolate("opacity", 1);
-  }
+
+      const segment = sorted[index];
+      const next = sorted[Math.min(index + 1, sorted.length - 1)];
+      const local =
+        index === 0
+          ? Math.min(1, progress / Math.max(0.0001, next.at - segment.at))
+          : (progress - segment.at) / Math.max(0.0001, next.at - segment.at);
+
+      const blend = (a, b) => (typeof a === "number" && typeof b === "number" ? a + (b - a) * local : local > 0.5 ? b : a);
+
+      stage.style.transform = blend(segment.transform ?? "none", next.transform ?? "none");
+      stage.style.opacity = String(blend(segment.opacity ?? 1, next.opacity ?? 1));
+    },
+  });
 
   if (!pinned) {
     return (
@@ -67,7 +67,7 @@ export default function PinnedScene({
   return (
     <div ref={ref} className={`relative ${className}`} style={{ height }}>
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
-        <div className="w-full will-change-transform" style={resolved}>
+        <div className="w-full will-change-transform" style={style}>
           {children}
         </div>
       </div>

@@ -27,7 +27,7 @@ import BrandLogo from "../components/BrandLogo";
 import { formatPrice } from "../data/productUtils";
 import { useProducts } from "../context/useProducts";
 import { TELEGRAM_LINK } from "../data/config";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../lib/supabaseAdmin";
 
 const emptyProduct = {
   name: "",
@@ -519,7 +519,7 @@ export default function AdminPage() {
                       <tbody>
                         {products.map((product) => (
                           <tr key={product.id} className="border-b border-slate-100 transition-colors duration-300 last:border-0 hover:bg-[#b58a45]/[0.06]">
-                            <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={product.image_url} alt={product.name} className="size-12 rounded-xl object-cover transition-transform duration-500 group-hover:scale-110" /><p className="text-sm font-extrabold text-slate-900">{product.name}</p></div></td>
+                            <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={product.image_url} alt={product.name} loading="lazy" decoding="async" className="size-12 rounded-xl object-cover transition-transform duration-500 group-hover:scale-110" /><p className="text-sm font-extrabold text-slate-900">{product.name}</p></div></td>
                             <td className="px-4 py-4 text-xs font-extrabold text-slate-800">{formatPrice(product.price)} so'm</td>
                             <td className="px-6 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => startEdit(product)} className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition-all duration-400 hover:-translate-y-0.5 hover:border-[#b58a45] hover:text-[#b58a45]" aria-label="Tahrirlash"><Pencil size={15} /></button><button type="button" onClick={() => handleDelete(product)} className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-500 transition-all duration-400 hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:text-red-600" aria-label="O'chirish"><Trash2 size={15} /></button></div></td>
                           </tr>
@@ -530,7 +530,7 @@ export default function AdminPage() {
                   <div className="divide-y divide-slate-100 md:hidden">
                     {products.map((product) => (
                       <article key={product.id} className="p-4">
-                        <div className="flex gap-3"><img src={product.image_url} alt={product.name} className="size-16 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-extrabold text-slate-900">{product.name}</p><p className="mt-2 text-xs font-extrabold text-slate-700">{formatPrice(product.price)} so'm</p></div></div>
+                        <div className="flex gap-3"><img src={product.image_url} alt={product.name} loading="lazy" decoding="async" className="size-16 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-extrabold text-slate-900">{product.name}</p><p className="mt-2 text-xs font-extrabold text-slate-700">{formatPrice(product.price)} so'm</p></div></div>
                         <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => startEdit(product)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600"><Pencil size={14} /> Tahrirlash</button><button type="button" onClick={() => handleDelete(product)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-100 px-3 text-xs font-bold text-red-600"><Trash2 size={14} /> O'chirish</button></div>
                       </article>
                     ))}

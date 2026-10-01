@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { products as seedProducts } from "../data/products";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
+import { getImage } from "../lib/images";
 import {
   createRemoteProduct,
   deleteRemoteProduct,
@@ -9,13 +10,24 @@ import {
 } from "../lib/productRepository";
 import { ProductContext } from "./productContextValue";
 
-const STORAGE_KEY = "soft-shoes-products-v1";
+/* v2: rasm modeli o'zgardi (webp manifest kaliti + tayyor URL),
+   eski keshda `image` to'g'ridan-to'g'ri JPG URL bo'lgani uchun
+   uni tashlab yuboramiz. */
+const STORAGE_KEY = "soft-shoes-products-v2";
 
 const makeLocalId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+/**
+ * Rasmlar endi manifest kaliti (`imageName`) va tayyor URL
+ * (`image_url`) ko'rinishida saqlanadi:
+ *  - `imageName` — lokal optimallashtirilgan webp (bo'lsa)
+ *  - `image_url` — har doim foydalanishga tayyor to'liq URL
+ */
 const normalizeProduct = (product) => {
   const name = product.name || product.nameUz || product.nameRu || "Yangi mahsulot";
-  const imageUrl = product.image_url || product.image || "";
+  const localImage = getImage(product.image);
+  const imageName = localImage ? product.image : null;
+  const imageUrl = localImage ? localImage.src : product.image_url || product.image || "";
 
   return {
     ...product,
@@ -25,7 +37,8 @@ const normalizeProduct = (product) => {
     nameRu: product.nameRu || name,
     descriptionUz: product.descriptionUz || "Soft Shoes kolleksiyasi",
     descriptionRu: product.descriptionRu || product.descriptionUz || "Коллекция Soft Shoes",
-    image: imageUrl,
+    image: imageName ?? imageUrl,
+    imageName,
     image_url: imageUrl,
     price: Math.max(0, Number(product.price) || 0),
     oldPrice: product.oldPrice ? Math.max(0, Number(product.oldPrice)) : null,
@@ -75,23 +88,49 @@ export function ProductProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!supabase) return undefined;
-    const refreshFromCloud = async () => {
-      try {
-        const remoteProducts = await fetchRemoteProducts();
-        setProducts(remoteProducts.map(normalizeProduct));
-        setSyncError("");
-        setSyncStatus("ready");
-      } catch {
-        return;
-      }
+    if (!isSupabaseConfigured) return undefined;
+    let channel;
+    let cancelled = false;
+
+    /* Realtime kanal faqat admin/ishlatilayotgan holatda kerak —
+       mobil'da har sahifada websocket ochish resursni yoyadi.
+       Shuning uchun faqat hujjat ko'rinib turgan paytda ishga tushadi. */
+    const connect = async () => {
+      const supabase = await getSupabase();
+      if (cancelled || !supabase) return;
+
+      const refreshFromCloud = async () => {
+        try {
+          const remoteProducts = await fetchRemoteProducts();
+          if (cancelled) return;
+          setProducts(remoteProducts.map(normalizeProduct));
+          setSyncError("");
+          setSyncStatus("ready");
+        } catch {
+          return;
+        }
+      };
+
+      channel = supabase
+        .channel("soft-shoes-products")
+        .on("postgres_changes", { event: "*", schema: "public", table: "products" }, refreshFromCloud)
+        .subscribe();
     };
-    const channel = supabase
-      .channel("soft-shoes-products")
-      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, refreshFromCloud)
-      .subscribe();
+
+    const start = () => {
+      if (channel || document.visibilityState === "hidden") return;
+      connect();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") start();
+    };
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (channel) getSupabase().then((supabase) => supabase?.removeChannel(channel));
     };
   }, []);
 

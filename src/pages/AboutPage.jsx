@@ -10,7 +10,8 @@ import CharFlip from "../components/motion/CharFlip";
 import TiltCard from "../components/motion/TiltCard";
 import MagneticButton from "../components/motion/MagneticButton";
 import Marquee from "../components/motion/Marquee";
-import { useParallax } from "../hooks/useScroll";
+import { useParallax } from "../hooks/useScrollMotion";
+import ProductImage from "../components/ProductImage";
 
 export default function AboutPage() {
   const { lang } = useLanguage();
@@ -98,7 +99,7 @@ export default function AboutPage() {
               >
                 <div ref={leftRef} className="parallax relative aspect-[0.78]">
                   <div className="fx-zoom sv-drift absolute inset-0">
-                    {products[0] ? <img src={products[0].image} alt="Soft Shoes" className="size-full object-cover" /> : null}
+                    {products[0] ? <ProductImage product={products[0]} alt="Soft Shoes" className="size-full" sizes="(min-width: 1024px) 30vw, 90vw" /> : null}
                   </div>
                 </div>
                 <div className="pointer-events-none absolute inset-0 scanline" aria-hidden="true" />
@@ -114,7 +115,7 @@ export default function AboutPage() {
                 <div ref={rightRef} className="parallax relative aspect-[0.78]">
                   <div className="fx-zoom sv-drift absolute inset-0">
                     {products[2] ? (
-                      <img src={products[2].image} alt="Soft Shoes collection" className="size-full object-cover" />
+                      <ProductImage product={products[2]} alt="Soft Shoes collection" className="size-full" sizes="(min-width: 1024px) 24vw, 90vw" />
                     ) : null}
                   </div>
                 </div>

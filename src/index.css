@@ -962,6 +962,138 @@
 ::placeholder { color: rgba(111, 112, 104, 0.75); }
 
 /* ------------------------------------------------------------------ *
+ *  PROGRESSIVE IMAGES (SmartImage)
+ * ------------------------------------------------------------------ */
+
+.smart-img {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background-color: #e7e3d9;
+  /* aspect-ratio klassasi (.aspect-*) shu elementga uchlanadi */
+}
+
+.smart-img > .smart-img-ph {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(14px) saturate(1.1);
+  transform: scale(1.12);
+}
+
+.smart-img > .smart-img-el {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.6s var(--ease-out-expo);
+}
+
+.smart-img[data-loaded="true"] > .smart-img-el { opacity: 1; }
+
+/* blur placeholder ostida qolmasin (double-composite tezligi) */
+.smart-img[data-loaded="true"] > .smart-img-ph { opacity: 0; }
+.smart-img > .smart-img-ph { transition: opacity 0.5s var(--ease-soft); }
+
+/* rasm yo'q bo'lsa */
+.smart-img-fallback {
+  display: block;
+  background: linear-gradient(135deg, #e7e3d9, #dcd7c9);
+}
+
+/* ------------------------------------------------------------------ *
+ *  SCROLL-BASED VISIBILITY (render'siz)
+ * ------------------------------------------------------------------ */
+
+.back-to-top,
+.floating-tg {
+  opacity: 0;
+  transform: translate3d(0, 20px, 0) scale(0.75);
+  transition:
+    opacity 0.45s var(--ease-out-expo),
+    transform 0.45s var(--ease-out-expo);
+}
+
+.back-to-top[data-visible="true"],
+.floating-tg[data-visible="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+/* ------------------------------------------------------------------ *
+ *  ROUTE SKELETON
+ * ------------------------------------------------------------------ */
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: #eceadf;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------ *
+ *  LITE FX MODE — past quvvatli / touch qurilmalar
+ *
+ *  `html[data-fx="lite"]` main.jsx tomonidan qurilma imkoniyatiga
+ *  qarab qo'yiladi. Bu yerda faqat GPU ga qimmat effektlar
+ *  o'chiriladi; transform/opacity asosidagi animatsiyalar saqlanadi.
+ * ------------------------------------------------------------------ */
+
+[data-fx="lite"] .blob,
+[data-fx="lite"] .conic-ring::before,
+[data-fx="lite"] .scanline::after,
+[data-fx="lite"] .noise::after,
+[data-fx="lite"] .sv-drift,
+[data-fx="lite"] .sv-zoom,
+[data-fx="lite"] .orbit,
+[data-fx="lite"] .eq-bar,
+[data-fx="lite"] .beam::after,
+[data-fx="lite"] .drift-x,
+[data-fx="lite"] .float,
+[data-fx="lite"] .animate-float,
+[data-fx="lite"] .animate-float-slow,
+[data-fx="lite"] .animate-spin-slow,
+[data-fx="lite"] .animate-spin-slower,
+[data-fx="lite"] .animate-ping,
+[data-fx="lite"] .animate-pulse-ring {
+  animation: none !important;
+}
+
+/* har safar kadrda qayta hisoblanadigan qimmat blur'lar */
+[data-fx="lite"] .blur-3xl,
+[data-fx="lite"] .blur-2xl,
+[data-fx="lite"] .backdrop-blur-md,
+[data-fx="lite"] .backdrop-blur-sm,
+[data-fx="lite"] .backdrop-blur-lg {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-fx="lite"] .blur-3xl { filter: none !important; }
+[data-fx="lite"] .blur-2xl { filter: none !important; }
+
+/* blur o'rniga yengil, arzon "rang xaritasi" beriladi */
+[data-fx="lite"] .blob {
+  opacity: 0.55;
+}
+
+[data-fx="lite"] .conic-ring::before { opacity: 0.5 !important; }
+[data-fx="lite"] .noise::after { display: none !important; }
+
+/* sticky/pinned sahnalar mobil'da bo'sh joy band qilmasin */
+[data-fx="lite"] .sv-drift { transform: none !important; }
+
+/* ------------------------------------------------------------------ *
  *  REDUCED MOTION
  * ------------------------------------------------------------------ */
 

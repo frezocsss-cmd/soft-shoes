@@ -11,7 +11,8 @@ import ScrambleText from "../components/motion/ScrambleText";
 import CharFlip from "../components/motion/CharFlip";
 import MagneticButton from "../components/motion/MagneticButton";
 import TiltCard from "../components/motion/TiltCard";
-import { useParallax } from "../hooks/useScroll";
+import ProductImage from "../components/ProductImage";
+import { useParallax } from "../hooks/useScrollMotion";
 
 export default function ProductDetailsPage() {
   const { productId } = useParams();
@@ -78,7 +79,14 @@ export default function ProductDetailsPage() {
           >
             <div ref={imageRef} className="parallax relative aspect-[0.9] overflow-hidden">
               <div className="fx-zoom sv-drift absolute inset-0">
-                <img src={product.image_url} alt={name} className="size-full object-cover" />
+                <ProductImage
+                  product={product}
+                  alt={name}
+                  className="size-full"
+                  sizes="(min-width: 1024px) 45vw, 100vw"
+                  priority
+                  rootMargin="400px"
+                />
               </div>
               {/* sweep — mobil'da ham ko'rinadi */}
               <div className="pointer-events-none absolute inset-0 scanline" aria-hidden="true" />

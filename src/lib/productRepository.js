@@ -1,12 +1,13 @@
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "./supabase";
 
-const getClient = () => {
-  if (!supabase) throw new Error("Supabase sozlanmagan");
-  return supabase;
+const getClient = async () => {
+  const client = await getSupabase();
+  if (!client) throw new Error("Supabase sozlanmagan");
+  return client;
 };
 
 const requireAdminSession = async () => {
-  const client = getClient();
+  const client = await getClient();
   const { data, error } = await client.auth.getSession();
   if (error) throw new Error(`Auth sessionini olishda xatolik: ${error.message}`);
   if (!data.session) throw new Error("Admin login required");
@@ -60,7 +61,7 @@ const uploadProductImage = async (image, productId) => {
   const blob = await fetch(image).then((response) => response.blob());
   const extension = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
   const path = `${productId}/${Date.now()}.${extension}`;
-  const client = getClient();
+  const client = await getClient();
   const { error } = await client.storage.from("product-images").upload(path, blob, {
     cacheControl: "31536000",
     contentType: blob.type,
@@ -71,7 +72,8 @@ const uploadProductImage = async (image, productId) => {
 };
 
 export async function fetchRemoteProducts() {
-  const { data, error } = await getClient()
+  const client = await getClient();
+  const { data, error } = await client
     .from("products")
     .select('id, "Name", "Price", image_url');
   if (error) throw error;
@@ -90,8 +92,9 @@ export async function createRemoteProduct(product) {
   }
 
   const { Name, Price } = toRow({ ...product, image: publicImageUrl });
+  const client = await getClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("products")
     .insert({
       Name,
@@ -113,7 +116,8 @@ export async function updateRemoteProduct(product) {
   } catch (error) {
     throw new Error(`Rasmni yuklash xatosi: ${error.message}`);
   }
-  const { data, error } = await getClient()
+  const client = await getClient();
+  const { data, error } = await client
     .from("products")
     .update(toRow({ ...product, image }))
     .eq("id", product.id)
@@ -125,6 +129,7 @@ export async function updateRemoteProduct(product) {
 
 export async function deleteRemoteProduct(id) {
   const session = await requireAdminSession();
-  const { error } = await getClient().from("products").delete().eq("id", id);
+  const client = await getClient();
+  const { error } = await client.from("products").delete().eq("id", id);
   if (error) throw writeError("Product o'chirish xatosi", error, session.user.email);
 }

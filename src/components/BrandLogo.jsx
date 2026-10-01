@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import logo from "../assets/logo.jpg";
+import SmartImage from "./SmartImage";
+import { PRODUCT_IMAGES } from "../lib/images";
 
 export default function BrandLogo({ inverted = false, onClick }) {
   return (
@@ -14,8 +15,15 @@ export default function BrandLogo({ inverted = false, onClick }) {
           inverted ? "border-white/20 bg-white" : "border-ink/10 bg-white"
         }`}
       >
-        <span className="absolute inset-0 rounded-full bg-gold/20 opacity-0 blur-md transition-opacity duration-500 group-hover:opacity-100" />
-        <img src={logo} alt="Soft Shoes" className="relative size-full object-cover" />
+        <span className="absolute inset-0 rounded-full bg-gold/20 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+        <SmartImage
+          name={PRODUCT_IMAGES.logo}
+          alt="Soft Shoes"
+          priority
+          sizes="40px"
+          className="relative size-full"
+          rootMargin="0px"
+        />
       </span>
       <span className={`flex flex-col leading-none ${inverted ? "text-white" : "text-ink"}`}>
         <span className="text-[15px] font-extrabold tracking-[0.24em] transition-colors duration-500 group-hover:text-gold">
