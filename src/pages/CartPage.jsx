@@ -1,25 +1,25 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  ArrowRight,
-  Check,
-  MapPin,
-  MessageCircle,
+  ArrowLeft,
+  CheckCircle2,
   Minus,
   Plus,
   ShoppingBag,
   Trash2,
+  TriangleAlert,
   Truck,
+  UserRound,
+  Phone,
+  MapPin,
+  MessageCircle,
 } from "lucide-react";
-import { useLanguage } from "../context/LanguageContext";
 import { useCart } from "../context/CartContext";
 import { useProducts } from "../context/useProducts";
 import { formatPrice } from "../data/productUtils";
-import { translations } from "../data/translations";
-import { buildCartOrderMessage, getTelegramMessageUrl, sendOrderToTelegram } from "../lib/telegram";
 import { createOrder } from "../lib/orderRepository";
-import ProductImage from "../components/ProductImage";
-import Reveal from "../components/motion/Reveal";
+import { buildCartOrderMessage, getTelegramMessageUrl } from "../lib/telegram";
+import { getImage } from "../lib/images";
 
 const initialCustomer = {
   name: "",
@@ -55,6 +55,7 @@ export default function CartPage() {
   const [error, setError] = useState("");
   const [placedOrder, setPlacedOrder] = useState(null);
   const [fallbackUrl, setFallbackUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const isRussian = lang === "ru";
 
@@ -89,10 +90,39 @@ export default function CartPage() {
                   {item.product.name}
                   {item.size ? ` · ${item.size}` : ""} × {item.quantity}
                 </span>
-                <span className="shrink-0 font-bold text-ink">{formatPrice(item.lineTotal)}</span>
+                <span className="shrink-0 font-bold text-ink">
+                  {formatPrice((Number(item.product?.price) || 0) * Number(item.quantity || 1))}
+                </span>
               </li>
             ))}
           </ul>
+        </div>
+
+        <div className="mt-6 w-full max-w-2xl rounded-2xl border border-line bg-white p-5 text-left">
+          <p className="text-xs font-bold text-ink">Buyurtma matni (nusxalash uchun)</p>
+          <p className="mt-1 text-[11px] text-muted">
+            Telegram orqali @Muniradmsh ga yuborishingiz kerak. Buyurtma avtomatik yuborilmaydi.
+          </p>
+          <textarea
+            readOnly
+            value={placedOrder.message || ""}
+            className="mt-3 h-64 w-full rounded-xl border border-line bg-canvas p-3 text-[11px] leading-5 text-ink"
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(placedOrder.message || "");
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              } catch {
+                setCopied(false);
+              }
+            }}
+            className="btn btn-outline btn-sm mt-2"
+          >
+            {copied ? "Nusxalandi" : "Matnni nusxalash"}
+          </button>
         </div>
 
         <div className="mt-6 flex w-full max-w-md flex-col gap-2.5">
@@ -104,14 +134,12 @@ export default function CartPage() {
               className="btn btn-primary btn-lg btn-block"
             >
               <MessageCircle size={18} aria-hidden="true" />
-              {t.cart.telegramSend}
+              Telegramda ochish (@Muniradmsh)
             </a>
           ) : null}
-          <p className="text-[11px] leading-5 text-muted">{t.cart.telegramNote}</p>
-          <Link to="/catalog" className="btn btn-outline btn-block">
-            {t.cart.continue}
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+          <p className="text-[11px] leading-5 text-muted">
+            Telegram direkt havolasi orqali suhbatni oching va nusxalangan buyurtma matnini yuboring.
+          </p>
         </div>
       </section>
     );
@@ -143,6 +171,7 @@ export default function CartPage() {
     event.preventDefault();
     setError("");
     setFallbackUrl("");
+    setCopied(false);
 
     if (!customer.name.trim() || !customer.phone.trim()) {
       setError(t.cart.required);
@@ -157,65 +186,88 @@ export default function CartPage() {
       return;
     }
 
-    const message = buildCartOrderMessage({ items, customer });
-    const fallback = getTelegramMessageUrl(message);
+    const orderId = `SS-${Date.now().toString().slice(-8)}`;
+    const orderTime = new Date().toISOString();
+    const dateTime = new Date(orderTime).toLocaleString("uz-UZ");
 
-      if (!isCloudEnabled) {
-        setFallbackUrl(fallback);
-        setError(t.cart.offlineNote);
-        return;
+    const orderItems = items.map((item) => {
+      const product = item.product;
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      const price = Math.max(0, Number(product.price) || 0);
+      return {
+        product,
+        size: item.size,
+        quantity: qty,
+        price,
+        total: price * qty,
+      };
+    });
+
+    const totalSum = orderItems.reduce((sum, item) => sum + item.total, 0);
+
+    const messageLines = [
+      "SOFT SHOES",
+      "YANGI BUYURTMA",
+      "",
+      `Buyurtma raqami: ${orderId}`,
+      `Sana: ${dateTime}`,
+      "",
+      "MAHSULOT MA'LUMOTLARI",
+    ];
+
+    orderItems.forEach((item, index) => {
+      messageLines.push(
+        `Mahsulot: ${item.product.name}`,
+        `Mahsulot kodi: ${item.product.id}`,
+      );
+      if (item.product.color) messageLines.push(`Rang: ${item.product.color}`);
+      if (item.size) messageLines.push(`O‘lcham: ${item.size}`);
+      messageLines.push(
+        `Miqdor: ${item.quantity}`,
+        `Bir dona narxi: ${formatPrice(item.price)} so‘m`,
+      );
+      if (orderItems.length > 1) {
+        messageLines.push(`Qator jami: ${formatPrice(item.total)} so‘m`);
       }
+      if (index < orderItems.length - 1) messageLines.push("");
+    });
 
-      setSubmitting(true);
-      try {
-        const order = await createOrder({
-          customer: {
-            name: customer.name.trim(),
-            phone: customer.phone.trim(),
-            telegram: customer.telegram.trim(),
-            address:
-              customer.fulfillment === "delivery"
-                ? customer.address.trim()
-                : isRussian
-                  ? "Самовывоз из магазина"
-                  : "Do'kondan olib ketish",
-            comment: customer.comment.trim(),
-            fulfillment: customer.fulfillment,
-          },
-          items: items.map((item) => ({
-            productId: item.product.id,
-            size: item.size,
-            quantity: item.quantity,
-          })),
-        });
+    messageLines.push(`UMUMIY SUMMA: ${formatPrice(totalSum)} so‘m`, "", "MIJOZ MA'LUMOTLARI");
+    messageLines.push(`F.I.Sh.: ${customer.name.trim()}`);
+    messageLines.push(`Telefon: ${customer.phone.trim()}`);
+    const deliveryAddress =
+      customer.fulfillment === "delivery"
+        ? customer.address.trim()
+        : isRussian
+          ? "Самовывоз из магазина"
+          : "Do'kondan olib ketish";
+    if (deliveryAddress) messageLines.push(`Manzil: ${deliveryAddress}`);
+    if (customer.telegram?.trim()) messageLines.push(`Telegram: ${customer.telegram.trim()}`);
+    if (customer.comment?.trim()) messageLines.push(`Izoh: ${customer.comment.trim()}`);
+    messageLines.push("", "Holat: Yangi buyurtma", "Manba: Soft Shoes onlayn do‘koni");
 
-        const savedItems = items;
-        const orderNumber = order?.order_number ?? order?.orderNumber ?? "—";
-        const total = Number(order?.total) || subtotal;
-        const successMessage = buildCartOrderMessage({
-          items: savedItems,
-          customer,
-          order: { order_number: orderNumber },
-        });
+    const message = messageLines.join("\n");
+    const telegramChatUrl = "https://t.me/Muniradmsh";
+    const directUrl = `${telegramChatUrl}?text=${encodeURIComponent(message)}`;
 
-        const successTelegramUrl = getTelegramMessageUrl(successMessage);
-        setPlacedOrder({
-          orderNumber,
-          total,
-          items: savedItems,
-          telegramUrl: successTelegramUrl,
-        });
-        clearCart();
-        setCustomer(initialCustomer);
-        void sendOrderToTelegram(successMessage);
-        if (successTelegramUrl) {
-          window.location.href = successTelegramUrl;
-        } else {
-          setStep("done");
-        }
-      } catch (submitError) {
+    setSubmitting(true);
+    try {
+      setPlacedOrder({
+        orderNumber: orderId,
+        total: totalSum,
+        items: items,
+        message,
+        telegramUrl: directUrl,
+      });
+      clearCart();
+      setCustomer(initialCustomer);
+      setSubmitting(false);
+      window.open(telegramChatUrl, "_blank", "noopener,noreferrer");
+      setFallbackUrl(directUrl);
+      return;
+    } catch (submitError) {
       setError(submitError.message || t.cart.error);
-      setFallbackUrl(fallback);
+      setFallbackUrl(directUrl);
     } finally {
       setSubmitting(false);
     }
@@ -456,22 +508,20 @@ export default function CartPage() {
                 </div>
 
                 <div aria-live="polite">
-                  {error ? (
-                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-[11px] font-semibold leading-5 text-rose-700">
-                      {error}
-                    </div>
-                  ) : null}
-                  {fallbackUrl ? (
-                    <a
-                      href={fallbackUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-primary btn-block mt-2"
-                    >
-                      <MessageCircle size={16} aria-hidden="true" />
-                      {t.cart.orderTelegram}
-                    </a>
-                  ) : null}
+                {fallbackUrl ? (
+                  <a
+                    href={fallbackUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-outline btn-block"
+                  >
+                    <MessageCircle size={16} aria-hidden="true" />
+                    Telegramda ochish
+                  </a>
+                ) : null}
+                <p className="text-center text-[10px] leading-5 text-muted">
+                  Buyurtma matnini nusxalab @Muniradmsh ga yuboring. Avtomatik yuborish mumkin emas.
+                </p>
                 </div>
 
                 <button
@@ -479,7 +529,7 @@ export default function CartPage() {
                   disabled={submitting}
                   className="btn btn-primary btn-lg btn-block"
                 >
-                  {submitting ? t.cart.submitting : t.cart.submit}
+                  {submitting ? "Yuborilmoqda..." : "Buyurtma berish"}
                   {!submitting ? <ArrowRight size={17} aria-hidden="true" /> : null}
                 </button>
 

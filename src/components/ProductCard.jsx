@@ -5,7 +5,6 @@ import { useLanguage } from "../context/LanguageContext";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../data/productUtils";
 import { translations } from "../data/translations";
-import { buildProductOrderUrl, buildProductOrderMessage, sendOrderToTelegram } from "../lib/telegram";
 import { getImage } from "../lib/images";
 import ProductImage from "./ProductImage";
 import Reveal from "./motion/Reveal";
@@ -203,10 +202,41 @@ export default function ProductCard({ product, index = 0, sizes }) {
                 <button
                   type="button"
                   onClick={() => {
-                    void sendOrderToTelegram(
-                      buildProductOrderMessage(product, { size: selectedSize, quantity: 1 }),
+                    const orderId = `SS-P-${product.id}-${Date.now().toString().slice(-6)}`;
+                    const dateTime = new Date().toLocaleString("uz-UZ");
+                    const price = Math.max(0, Number(product.price) || 0);
+                    const messageLines = [
+                      "SOFT SHOES",
+                      "YANGI BUYURTMA",
+                      "",
+                      `Buyurtma raqami: ${orderId}`,
+                      `Sana: ${dateTime}`,
+                      "",
+                      "MAHSULOT MA'LUMOTLARI",
+                      `Mahsulot: ${product.name}`,
+                      `Mahsulot kodi: ${product.id}`,
+                    ];
+                    if (product.color) messageLines.push(`Rang: ${product.color}`);
+                    if (selectedSize) messageLines.push(`O‘lcham: ${selectedSize}`);
+                    messageLines.push(
+                      `Miqdor: 1`,
+                      `Bir dona narxi: ${formatPrice(price)} so‘m`,
+                      `UMUMIY SUMMA: ${formatPrice(price)} so‘m`,
+                      "",
+                      "MIJOZ MA'LUMOTLARI",
+                      "F.I.Sh.: [to‘ldiriladi]",
+                      "Telefon: [to‘ldiriladi]",
+                      "Manzil: [to‘ldiriladi]",
+                      "",
+                      "Holat: Yangi buyurtma",
+                      "Manba: Soft Shoes onlayn do‘koni",
                     );
-                    if (orderUrl) window.open(orderUrl, "_blank", "noopener,noreferrer");
+                    const message = messageLines.join("\n");
+                    const telegramChatUrl = "https://t.me/Muniradmsh";
+                    const directUrl = `${telegramChatUrl}?text=${encodeURIComponent(message)}`;
+                    void navigator.clipboard?.writeText(message).catch(() => {});
+                    window.open(telegramChatUrl, "_blank", "noopener,noreferrer");
+                    window.open(directUrl, "_blank", "noopener,noreferrer");
                   }}
                   className="btn btn-primary btn-sm px-3"
                   aria-label={`${name} — ${isRussian ? "Заказ через Telegram" : "Telegram orqali buyurtma"}`}

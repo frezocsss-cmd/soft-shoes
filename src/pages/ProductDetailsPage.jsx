@@ -16,7 +16,7 @@ import { useProducts } from "../context/useProducts";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../data/productUtils";
 import { translations } from "../data/translations";
-import { buildProductOrderUrl, buildProductOrderMessage, getTelegramMessageUrl, sendOrderToTelegram } from "../lib/telegram";
+import { buildProductOrderUrl } from "../lib/telegram";
 import ProductCard from "../components/ProductCard";
 import ProductGallery from "../components/ProductGallery";
 import SectionHeading from "../components/SectionHeading";
@@ -124,22 +124,59 @@ export default function ProductDetailsPage() {
   };
 
   const handleOrderClick = (event) => {
-    if (canOrder) {
-      void sendOrderToTelegram(buildProductOrderMessage(product, { size, quantity }));
-      showFeedback(
-        "success",
-        isRussian
-          ? "Сообщение готово — проверьте его в Telegram и отправьте."
-          : "Xabar tayyor — Telegram'da tekshirib yuboring.",
-      );
+    if (!canOrder) {
+      event.preventDefault();
+      if (!isAvailable) {
+        showFeedback("error", isRussian ? "Товара нет в наличии" : "Mahsulot tugagan");
+        return;
+      }
+      showFeedback("error", t.product.chooseSize);
       return;
     }
-    event.preventDefault();
-    if (!isAvailable) {
-      showFeedback("error", isRussian ? "Товара нет в наличии" : "Mahsulot tugagan");
-      return;
-    }
-    showFeedback("error", t.product.chooseSize);
+
+    const orderId = `SS-P-${product.id}-${Date.now().toString().slice(-6)}`;
+    const dateTime = new Date().toLocaleString("uz-UZ");
+    const price = Math.max(0, Number(product.price) || 0);
+    const totalPrice = price * quantity;
+    const messageLines = [
+      "SOFT SHOES",
+      "YANGI BUYURTMA",
+      "",
+      `Buyurtma raqami: ${orderId}`,
+      `Sana: ${dateTime}`,
+      "",
+      "MAHSULOT MA'LUMOTLARI",
+      `Mahsulot: ${product.name}`,
+      `Mahsulot kodi: ${product.id}`,
+    ];
+    if (product.color) messageLines.push(`Rang: ${product.color}`);
+    if (size) messageLines.push(`O‘lcham: ${size}`);
+    messageLines.push(
+      `Miqdor: ${quantity}`,
+      `Bir dona narxi: ${formatPrice(price)} so‘m`,
+      `UMUMIY SUMMA: ${formatPrice(totalPrice)} so‘m`,
+      "",
+      "MIJOZ MA'LUMOTLARI",
+      "F.I.Sh.: [to‘ldiriladi]",
+      "Telefon: [to‘ldiriladi]",
+      "Manzil: [to‘ldiriladi]",
+      "",
+      "Holat: Yangi buyurtma",
+      "Manba: Soft Shoes onlayn do‘koni",
+    );
+    const message = messageLines.join("\n");
+    const telegramChatUrl = "https://t.me/Muniradmsh";
+    const directUrl = `${telegramChatUrl}?text=${encodeURIComponent(message)}`;
+
+    void navigator.clipboard?.writeText(message).catch(() => {});
+    showFeedback(
+      "success",
+      isRussian
+        ? "Текст заказа скопирован. Откройте чат с @Muniradmsh и отправьте его."
+        : "Buyurtma matni nusxalandi. @Muniradmsh bilan chatni oching va yuboring.",
+    );
+    window.open(telegramChatUrl, "_blank", "noopener,noreferrer");
+    window.open(directUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleAddToCart = () => {
