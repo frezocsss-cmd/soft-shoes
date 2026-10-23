@@ -1,8 +1,12 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { MessageCircle } from "lucide-react";
+import { Check, MessageCircle, ShoppingBag } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
-import { TELEGRAM_LINK } from "../data/config";
+import { useCart } from "../context/CartContext";
 import { formatPrice } from "../data/productUtils";
+import { translations } from "../data/translations";
+import { buildProductOrderUrl, buildProductOrderMessage, sendOrderToTelegram } from "../lib/telegram";
+import { getImage } from "../lib/images";
 import ProductImage from "./ProductImage";
 import Reveal from "./motion/Reveal";
 
@@ -13,93 +17,205 @@ const BADGES = {
 
 export default function ProductCard({ product, index = 0, sizes }) {
   const { lang } = useLanguage();
+  const { addItem } = useCart();
   const isRussian = lang === "ru";
   const copy = isRussian ? BADGES.ru : BADGES.uz;
+  const tiltRef = useTilt();
+  const timerRef = useRef(null);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const [notice, setNotice] = useState(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
+  const showNotice = (type, message) => {
+    setNotice({ type, message });
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => setNotice(null), 2600);
+  };
 
   const name = product.name || (isRussian ? product.nameRu : product.nameUz);
-  // `new` — ma'lumot bazasi badge ustuni yo'q paytda ProductContext qo'yadigan
-  // zaxira qiymat, shuning uchun u haqiqiy merchandising belgisi emas.
   const badge = product.badge && product.badge !== "new" ? (copy[product.badge] ?? null) : null;
   const isSale = product.badge === "sale";
   const lowStock = product.stock != null && product.stock > 0 && product.stock <= 3;
   const outOfStock = product.stock != null && product.stock <= 0;
+  const requiresSize = Boolean(product.sizes?.length);
+
+  const orderUrl = buildProductOrderUrl(product, {
+    size: selectedSize,
+    quantity: 1,
+  });
+
+  const requireSize = () => {
+    showNotice("error", isRussian ? "Сначала выберите размер" : "Avval o'lchamni tanlang");
+  };
+
+  const handleAddToCart = () => {
+    const result = addItem(product, { size: selectedSize, quantity: 1 });
+    if (!result.ok) {
+      showNotice("error", result.message);
+      return;
+    }
+    showNotice("success", isRussian ? "Добавлено в корзину" : "Savatga qo'shildi");
+  };
 
   return (
     <Reveal
       as="article"
       from="up"
       delay={Math.min(index, 7) * 55}
-      className="card card-hover group flex h-full flex-col overflow-hidden"
+      className="h-full"
     >
-      <Link
-        to={`/products/${product.id}`}
-        className="block"
-        aria-label={`${name} — ${copy.details}`}
+      <div
+        ref={tiltRef}
+        data-tilting="false"
+        className="tilt-card card group flex h-full flex-col overflow-hidden"
       >
-        <div className="media aspect-[4/5]">
-          <ProductImage
-            product={product}
-            alt={name}
-            className="size-full transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-            sizes={sizes ?? "(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 40vw, 72vw"}
-          />
+        <span className="tilt-glow" aria-hidden="true" />
 
-          {badge || lowStock ? (
-            <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-1.5">
-              {badge ? (
-                <span
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] ${
-                    isSale ? "bg-rose-600 text-white" : "bg-white text-ink shadow-card"
-                  }`}
-                >
-                  {badge}
-                </span>
-              ) : null}
-              {lowStock ? (
-                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-amber-800">
-                  {copy.low}
-                </span>
-              ) : null}
+        <Link
+          to={`/product/${product.id}`}
+          className="tilt-media block"
+          aria-label={`${name} — ${copy.details}`}
+        >
+          <div className="media aspect-[4/5]">
+            <ProductImage
+              product={product}
+              alt={name}
+              className="size-full transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+              sizes={sizes ?? "(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 40vw, 72vw"}
+            />
+
+            {badge || lowStock || outOfStock ? (
+              <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-1.5">
+                {badge ? (
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] ${
+                      isSale ? "bg-rose-600 text-white" : "bg-white text-ink shadow-card"
+                    }`}
+                  >
+                    {badge}
+                  </span>
+                ) : null}
+                {outOfStock ? (
+                  <span className="rounded-full bg-ink px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-white">
+                    {isRussian ? "Нет в наличии" : "Tugagan"}
+                  </span>
+                ) : lowStock ? (
+                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-amber-800">
+                    {copy.low}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </Link>
+
+        <div className="relative z-[2] flex flex-1 flex-col bg-white p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+            {product.brand ? `${product.brand} · ${product.category}` : product.category}
+          </p>
+          <h3 className="mt-1.5 line-clamp-2 text-[15px] font-extrabold leading-snug text-ink">
+            <Link to={`/product/${product.id}`} className="transition-colors duration-200 hover:text-gold">
+              {name}
+            </Link>
+          </h3>
+
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="text-[17px] font-extrabold text-ink">
+              {formatPrice(product.price)} <span className="text-[11px] font-semibold text-muted">so'm</span>
+            </span>
+            {product.oldPrice ? (
+              <span className="text-xs text-muted line-through">{formatPrice(product.oldPrice)}</span>
+            ) : null}
+          </div>
+
+          {requiresSize ? (
+            <div className="mt-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+                {isRussian ? "Размер" : "O'lcham"}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {product.sizes.map((size) => {
+                  const active = selectedSize === size || selectedSize === String(size);
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setSelectedSize(size)}
+                      aria-pressed={active}
+                      className={`min-w-8 rounded-lg border px-2 py-1 text-[11px] font-extrabold transition-all duration-200 ${
+                        active
+                          ? "scale-105 border-ink bg-ink text-white"
+                          : "border-line bg-white text-muted hover:border-ink/40 hover:text-ink"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
-        </div>
-      </Link>
 
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-          {product.category}
-        </p>
-        <h3 className="mt-1.5 line-clamp-2 text-[15px] font-extrabold leading-snug text-ink">
-          <Link to={`/products/${product.id}`} className="transition-colors duration-200 hover:text-gold">
-            {name}
-          </Link>
-        </h3>
+          <div className="mt-auto pt-4">
+            {notice ? (
+              <p
+                role="status"
+                className={`mb-2 text-[11px] font-bold ${
+                  notice.type === "error" ? "text-rose-600" : "text-olive"
+                }`}
+              >
+                {notice.message}
+              </p>
+            ) : null}
 
-        <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="text-[17px] font-extrabold text-ink">
-            {formatPrice(product.price)} <span className="text-[11px] font-semibold text-muted">so'm</span>
-          </span>
-          {product.oldPrice ? (
-            <span className="text-xs text-muted line-through">{formatPrice(product.oldPrice)}</span>
-          ) : null}
-          {outOfStock ? (
-            <span className="text-[11px] font-bold text-rose-600">
-              {isRussian ? "Нет в наличии" : "Tugagan"}
-            </span>
-          ) : null}
-        </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={outOfStock}
+                className="btn btn-outline btn-sm flex-1 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {notice?.type === "success" ? (
+                  <Check size={15} aria-hidden="true" />
+                ) : (
+                  <ShoppingBag size={15} aria-hidden="true" />
+                )}
+                <span className="hidden sm:inline">{isRussian ? "В корзину" : "Savatga"}</span>
+                <span className="sm:hidden">{isRussian ? "Корзина" : "Savat"}</span>
+              </button>
 
-        <div className="mt-auto flex gap-2 pt-4">
-          <Link to={`/products/${product.id}`} className="btn btn-outline btn-sm flex-1">
-            {copy.details}
-          </Link>
-          <a
-            href={TELEGRAM_LINK}
-            aria-label={`${name} — Telegram orqali buyurtma`}
-            className="btn btn-primary btn-sm px-3"
-          >
-            <MessageCircle size={15} aria-hidden="true" />
-          </a>
+              {requiresSize && !selectedSize ? (
+                <button
+                  type="button"
+                  onClick={requireSize}
+                  className="btn btn-primary btn-sm px-3"
+                  aria-label={isRussian ? "Выберите размер" : "O'lcham tanlang"}
+                >
+                  <MessageCircle size={15} aria-hidden="true" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void sendOrderToTelegram(
+                      buildProductOrderMessage(product, { size: selectedSize, quantity: 1 }),
+                    );
+                    if (orderUrl) window.open(orderUrl, "_blank", "noopener,noreferrer");
+                  }}
+                  className="btn btn-primary btn-sm px-3"
+                  aria-label={`${name} — ${isRussian ? "Заказ через Telegram" : "Telegram orqali buyurtma"}`}
+                >
+                  <MessageCircle size={15} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </Reveal>

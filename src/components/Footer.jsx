@@ -18,14 +18,14 @@ export default function Footer() {
 
   const navigation = [
     { label: t.nav.home, to: "/" },
-    { label: t.nav.products, to: "/products" },
+    { label: t.nav.catalog, to: "/catalog" },
     { label: t.nav.about, to: "/about" },
     { label: t.nav.contact, to: "/contact" },
   ];
 
   const help = [
     { label: t.contact.hoursText, to: "/contact" },
-    { label: lang === "ru" ? "Размеры" : "O'lchamlar", to: "/products" },
+    { label: lang === "ru" ? "Размеры" : "O'lchamlar", to: "/catalog" },
     { label: lang === "ru" ? "Доставка" : "Yetkazib berish", to: "/contact" },
   ];
 

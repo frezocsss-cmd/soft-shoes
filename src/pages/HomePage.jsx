@@ -112,7 +112,7 @@ export default function HomePage() {
 
             <Reveal from="up" delay={160}>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link to="/products" className="btn btn-primary btn-lg">
+                <Link to="/catalog" className="btn btn-primary btn-lg">
                   {t.home.primary}
                   <ArrowRight size={17} aria-hidden="true" />
                 </Link>
@@ -141,13 +141,14 @@ export default function HomePage() {
           </div>
 
           <Reveal from="up" delay={120} className="lg:justify-self-end">
-            <div className="w-full max-w-md lg:max-w-none">
-              <div className="media aspect-square rounded-3xl border border-line lg:aspect-[4/5]">
+            <div className="hero-stage w-full max-w-md lg:max-w-none">
+              <span className="hero-halo" aria-hidden="true" />
+              <div className="hero-media media aspect-square rounded-3xl border border-line lg:aspect-[4/5]">
                 {hero ? (
                   <ProductImage
                     product={hero}
                     alt={heroName ?? "Soft Shoes"}
-                    className="size-full"
+                    className="hero-media-img size-full"
                     sizes="(min-width: 1024px) 44vw, 92vw"
                     priority
                     rootMargin="600px"
@@ -157,19 +158,36 @@ export default function HomePage() {
                     Soft Shoes
                   </div>
                 )}
+                <span className="hero-shine" aria-hidden="true" />
+                <span className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-ink shadow-card backdrop-blur-sm">
+                  {t.home.floatingLabel}
+                </span>
               </div>
 
               {hero ? (
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-line bg-canvas px-4 py-3">
+                <div className="hero-meta mt-3 flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3 shadow-soft">
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-                      {t.home.floatingLabel}
+                      {hero.category}
                     </p>
-                    <p className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-ink">{heroName}</p>
+                    <Link
+                      to={`/product/${hero.id}`}
+                      className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-ink transition-colors hover:text-gold"
+                    >
+                      {heroName}
+                    </Link>
                   </div>
-                  <span className="shrink-0 text-sm font-extrabold text-ink">
-                    {formatPrice(hero.price)} <span className="text-[11px] text-muted">so'm</span>
-                  </span>
+                  <Link
+                    to={`/product/${hero.id}`}
+                    className="group flex shrink-0 items-center gap-2 rounded-full border border-line py-1.5 pl-3 pr-1.5 transition-colors hover:border-ink"
+                  >
+                    <span className="text-sm font-extrabold text-ink">
+                      {formatPrice(hero.price)} <span className="text-[11px] text-muted">so'm</span>
+                    </span>
+                    <span className="grid size-8 place-items-center rounded-full bg-ink text-white transition-transform duration-300 group-hover:translate-x-0.5">
+                      <ArrowRight size={14} aria-hidden="true" />
+                    </span>
+                  </Link>
                 </div>
               ) : null}
             </div>
@@ -210,7 +228,7 @@ export default function HomePage() {
               title={t.home.categoriesTitle}
               subtitle={t.home.categoriesSubtitle}
               action={
-                <Link to="/products" className="link-quiet text-sm">
+                <Link to="/catalog" className="link-quiet text-sm">
                   {t.common.viewAll}
                   <ArrowRight size={16} aria-hidden="true" />
                 </Link>
@@ -221,7 +239,7 @@ export default function HomePage() {
               {categories.map((category, index) => (
                 <Reveal key={category.key} from="up" delay={index * 60}>
                   <Link
-                    to={`/products?category=${encodeURIComponent(category.key)}`}
+                    to={`/catalog?category=${encodeURIComponent(category.key)}`}
                     className="card card-hover group flex h-full flex-col overflow-hidden"
                   >
                     <div className="media aspect-[5/4]">
@@ -261,7 +279,7 @@ export default function HomePage() {
             title={t.home.featuredTitle}
             subtitle={t.home.featuredSubtitle}
             action={
-              <Link to="/products" className="btn btn-outline btn-sm">
+              <Link to="/catalog" className="btn btn-outline btn-sm">
                 {t.common.viewAll}
                 <ArrowRight size={15} aria-hidden="true" />
               </Link>

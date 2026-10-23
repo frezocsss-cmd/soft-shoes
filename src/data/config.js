@@ -1,4 +1,6 @@
 export const TELEGRAM_LINK = "https://t.me/soft_shoes_uz";
+export const TELEGRAM_ADMIN_USERNAME =
+  (import.meta.env.VITE_TELEGRAM_ADMIN_USERNAME || "Muniradmsh").replace(/^@/, "").trim();
 export const PHONE_NUMBER = "+998977393912";
 export const PHONE_HREF = `tel:${PHONE_NUMBER}`;
 export const STORE_ADDRESS = "Toshkent, Mirobod tumani, Nukus ko'chasi, 3-uy";

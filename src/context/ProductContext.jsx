@@ -1,33 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { products as seedProducts } from "../data/products";
-import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
+import { isSupabaseConfigured } from "../lib/supabase";
 import { getImage } from "../lib/images";
 import {
-  createRemoteProduct,
-  deleteRemoteProduct,
-  fetchRemoteProducts,
-  updateRemoteProduct,
-} from "../lib/productRepository";
+  createMockProduct,
+  deleteMockProduct,
+  fetchMockProducts,
+  isMockApiConfigured,
+  updateMockProduct,
+} from "../lib/mockapi";
 import { ProductContext } from "./productContextValue";
 
-/* v2: rasm modeli o'zgardi (webp manifest kaliti + tayyor URL),
-   eski keshda `image` to'g'ridan-to'g'ri JPG URL bo'lgani uchun
-   uni tashlab yuboramiz. */
 const STORAGE_KEY = "soft-shoes-products-v2";
+const BADGES = new Set(["new", "bestseller", "limited", "sale"]);
 
 const makeLocalId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-/**
- * Rasmlar endi manifest kaliti (`imageName`) va tayyor URL
- * (`image_url`) ko'rinishida saqlanadi:
- *  - `imageName` — lokal optimallashtirilgan webp (bo'lsa)
- *  - `image_url` — har doim foydalanishga tayyor to'liq URL
- */
+const normalizeGallery = (value) => {
+  if (Array.isArray(value)) return value.filter((item) => typeof item === "string" && item);
+  return [];
+};
+
 const normalizeProduct = (product) => {
   const name = product.name || product.nameUz || product.nameRu || "Yangi mahsulot";
   const localImage = getImage(product.image);
   const imageName = localImage ? product.image : null;
-  const imageUrl = localImage ? localImage.src : product.image_url || product.image || "";
+  const galleryUrls = normalizeGallery(product.galleryUrls ?? product.gallery_urls);
+  const imageUrl =
+    (localImage ? localImage.src : null) || product.image_url || product.image || galleryUrls[0] || "";
 
   return {
     ...product,
@@ -43,11 +43,13 @@ const normalizeProduct = (product) => {
     price: Math.max(0, Number(product.price) || 0),
     oldPrice: product.oldPrice ? Math.max(0, Number(product.oldPrice)) : null,
     category: product.category || "Unisex",
-    sizes: Array.isArray(product.sizes) ? product.sizes.map(Number).filter(Boolean) : [],
+    brand: product.brand || "",
+    sizes: Array.isArray(product.sizes) ? product.sizes.map(Number).filter(Number.isFinite) : [],
     stock: product.stock == null ? null : Math.max(0, Number(product.stock) || 0),
-    badge: product.badge || "new",
+    badge: BADGES.has(product.badge) ? product.badge : null,
     featured: Boolean(product.featured),
-    createdAt: product.createdAt || new Date().toISOString(),
+    galleryUrls,
+    createdAt: product.createdAt || null,
   };
 };
 
@@ -62,15 +64,20 @@ const readLocalProducts = () => {
   }
 };
 
+const dataSource = isMockApiConfigured ? "mockapi" : "local";
+
+const loadRemoteProducts = () => fetchMockProducts();
+
 export function ProductProvider({ children }) {
   const [products, setProducts] = useState(readLocalProducts);
-  const [syncStatus, setSyncStatus] = useState(isSupabaseConfigured ? "loading" : "local");
+  const [syncStatus, setSyncStatus] = useState(dataSource === "local" ? "local" : "loading");
   const [syncError, setSyncError] = useState("");
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return undefined;
+    if (!isMockApiConfigured) return undefined;
     let active = true;
-    fetchRemoteProducts()
+
+    loadRemoteProducts()
       .then((remoteProducts) => {
         if (!active) return;
         setProducts(remoteProducts.map(normalizeProduct));
@@ -79,58 +86,12 @@ export function ProductProvider({ children }) {
       })
       .catch((error) => {
         if (!active) return;
-        setSyncError(error.message || "Supabase bilan bog'lanib bo'lmadi");
+        setSyncError(error.message || "Mahsulotlar bazasi bilan bog'lanib bo'lmadi");
         setSyncStatus("error");
       });
+
     return () => {
       active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) return undefined;
-    let channel;
-    let cancelled = false;
-
-    /* Realtime kanal faqat admin/ishlatilayotgan holatda kerak —
-       mobil'da har sahifada websocket ochish resursni yoyadi.
-       Shuning uchun faqat hujjat ko'rinib turgan paytda ishga tushadi. */
-    const connect = async () => {
-      const supabase = await getSupabase();
-      if (cancelled || !supabase) return;
-
-      const refreshFromCloud = async () => {
-        try {
-          const remoteProducts = await fetchRemoteProducts();
-          if (cancelled) return;
-          setProducts(remoteProducts.map(normalizeProduct));
-          setSyncError("");
-          setSyncStatus("ready");
-        } catch {
-          return;
-        }
-      };
-
-      channel = supabase
-        .channel("soft-shoes-products")
-        .on("postgres_changes", { event: "*", schema: "public", table: "products" }, refreshFromCloud)
-        .subscribe();
-    };
-
-    const start = () => {
-      if (channel || document.visibilityState === "hidden") return;
-      connect();
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") start();
-    };
-
-    start();
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      cancelled = true;
-      document.removeEventListener("visibilitychange", onVisibility);
-      if (channel) getSupabase().then((supabase) => supabase?.removeChannel(channel));
     };
   }, []);
 
@@ -138,20 +99,20 @@ export function ProductProvider({ children }) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
     } catch {
-      return;
+      /* no-op */
     }
   }, [products]);
 
   const refreshProducts = useCallback(async () => {
-    if (!isSupabaseConfigured) return;
+    if (dataSource === "local") return;
     setSyncStatus("loading");
     try {
-      const remoteProducts = await fetchRemoteProducts();
+      const remoteProducts = await loadRemoteProducts();
       setProducts(remoteProducts.map(normalizeProduct));
       setSyncError("");
       setSyncStatus("ready");
     } catch (error) {
-      setSyncError(error.message || "Supabase bilan bog'lanib bo'lmadi");
+      setSyncError(error.message || "Mahsulotlar bazasi bilan bog'lanib bo'lmadi");
       setSyncStatus("error");
       throw error;
     }
@@ -159,36 +120,40 @@ export function ProductProvider({ children }) {
 
   const addProduct = useCallback(async (product) => {
     const now = new Date().toISOString();
-    const draft = normalizeProduct(
-      isSupabaseConfigured ? { ...product, createdAt: now } : { ...product, id: makeLocalId(), createdAt: now },
-    );
-    if (isSupabaseConfigured) {
-      const saved = await createRemoteProduct(draft);
-      setProducts((current) => [normalizeProduct(saved), ...current]);
-      return saved.id;
+    if (isMockApiConfigured) {
+      const saved = await createMockProduct(product);
+      const normalized = normalizeProduct(saved);
+      setProducts((current) => [normalized, ...current]);
+      return normalized.id;
     }
+    const draft = normalizeProduct({ ...product, id: makeLocalId(), createdAt: now });
     setProducts((current) => [draft, ...current]);
     return draft.id;
   }, []);
 
-  const updateProduct = useCallback(async (id, changes) => {
-    const currentProduct = products.find((product) => String(product.id) === String(id));
-    if (!currentProduct) throw new Error("Mahsulot topilmadi");
-    const nextProduct = normalizeProduct({ ...currentProduct, ...changes, id: currentProduct.id });
-    if (isSupabaseConfigured) {
-      const saved = await updateRemoteProduct(nextProduct);
+  const updateProduct = useCallback(
+    async (id, changes) => {
+      const currentProduct = products.find((product) => String(product.id) === String(id));
+      if (!currentProduct) throw new Error("Mahsulot topilmadi");
+      const nextProduct = normalizeProduct({ ...currentProduct, ...changes, id: currentProduct.id });
+      if (isMockApiConfigured) {
+        const saved = await updateMockProduct(nextProduct);
+        setProducts((current) =>
+          current.map((product) =>
+            String(product.id) === String(id) ? normalizeProduct(saved) : product,
+          ),
+        );
+        return;
+      }
       setProducts((current) =>
-        current.map((product) => (String(product.id) === String(id) ? normalizeProduct(saved) : product)),
+        current.map((product) => (String(product.id) === String(id) ? nextProduct : product)),
       );
-      return;
-    }
-    setProducts((current) =>
-      current.map((product) => (String(product.id) === String(id) ? nextProduct : product)),
-    );
-  }, [products]);
+    },
+    [products],
+  );
 
   const deleteProduct = useCallback(async (id) => {
-    if (isSupabaseConfigured) await deleteRemoteProduct(id);
+    if (isMockApiConfigured) await deleteMockProduct(id);
     setProducts((current) => current.filter((product) => String(product.id) !== String(id)));
   }, []);
 
@@ -200,10 +165,19 @@ export function ProductProvider({ children }) {
       deleteProduct,
       refreshProducts,
       isCloudEnabled: isSupabaseConfigured,
+      dataSource,
       syncStatus,
       syncError,
     }),
-    [products, addProduct, updateProduct, deleteProduct, refreshProducts, syncStatus, syncError],
+    [
+      addProduct,
+      deleteProduct,
+      products,
+      refreshProducts,
+      syncError,
+      syncStatus,
+      updateProduct,
+    ],
   );
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;

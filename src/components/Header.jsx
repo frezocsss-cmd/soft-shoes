@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { ArrowUpRight, MapPin, Menu, MessageCircle, X } from "lucide-react";
+import { ArrowUpRight, MapPin, Menu, MessageCircle, ShoppingBag, X } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useCart } from "../context/CartContext";
 import { MAPS_LINK, TELEGRAM_LINK } from "../data/config";
 import { translations } from "../data/translations";
 import BrandLogo from "./BrandLogo";
@@ -11,10 +12,10 @@ export default function Header() {
   const { lang } = useLanguage();
   const t = translations[lang] ?? translations.uz;
   const { pathname } = useLocation();
+  const { count, openCart } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
 
-  /* Sahifa almashganda menyuni yopish — render paytida (effect'siz) */
   if (lastPath !== pathname) {
     setLastPath(pathname);
     setMenuOpen(false);
@@ -36,10 +37,16 @@ export default function Header() {
 
   const links = [
     { to: "/", label: t.nav.home },
-    { to: "/products", label: t.nav.products },
+    { to: "/catalog", label: t.nav.catalog },
     { to: "/about", label: t.nav.about },
     { to: "/contact", label: t.nav.contact },
   ];
+
+  const cartBadge = count > 0 ? (
+    <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-gold px-1.5 text-[10px] font-extrabold leading-5 text-white">
+      {count > 99 ? "99+" : count}
+    </span>
+  ) : null;
 
   return (
     <>
@@ -80,8 +87,17 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="hidden items-center gap-3 lg:flex">
+          <div className="hidden items-center gap-2.5 lg:flex">
             <LanguageToggle />
+            <button
+              type="button"
+              onClick={openCart}
+              className="relative grid size-10 place-items-center rounded-full border border-line bg-white text-ink transition-colors duration-200 hover:border-ink/30"
+              aria-label={`${t.nav.cart} (${count})`}
+            >
+              <ShoppingBag size={18} aria-hidden="true" />
+              {cartBadge}
+            </button>
             <a href={TELEGRAM_LINK} className="btn btn-primary btn-sm">
               <MessageCircle size={15} aria-hidden="true" />
               {t.nav.order}
@@ -89,7 +105,15 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            <LanguageToggle />
+            <button
+              type="button"
+              onClick={openCart}
+              className="relative grid size-11 place-items-center rounded-xl border border-line bg-white text-ink"
+              aria-label={`${t.nav.cart} (${count})`}
+            >
+              <ShoppingBag size={18} aria-hidden="true" />
+              {cartBadge}
+            </button>
             <button
               type="button"
               onClick={() => setMenuOpen((value) => !value)}
@@ -121,10 +145,13 @@ export default function Header() {
                 </NavLink>
               ))}
 
-              <a href={TELEGRAM_LINK} className="btn btn-primary btn-block mt-2">
-                <MessageCircle size={16} aria-hidden="true" />
-                {t.nav.order}
-              </a>
+              <div className="mt-2 flex items-center justify-between gap-3 border-t border-line pt-3">
+                <LanguageToggle />
+                <a href={TELEGRAM_LINK} className="btn btn-primary btn-sm">
+                  <MessageCircle size={15} aria-hidden="true" />
+                  {t.nav.order}
+                </a>
+              </div>
             </nav>
           </div>
         ) : null}

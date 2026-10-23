@@ -34,7 +34,7 @@ export default function AboutPage() {
             <p className="lede mt-5 max-w-lg">{t.about.subtitle}</p>
 
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link to="/products" className="btn btn-primary">
+              <Link to="/catalog" className="btn btn-primary">
                 {t.about.cta}
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>
@@ -91,7 +91,7 @@ export default function AboutPage() {
               ))}
             </ul>
 
-            <Link to="/products" className="btn btn-primary mt-8">
+            <Link to="/catalog" className="btn btn-primary mt-8">
               {t.about.cta}
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
