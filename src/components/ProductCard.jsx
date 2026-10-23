@@ -4,8 +4,7 @@ import { Check, MessageCircle, ShoppingBag } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../data/productUtils";
-import { translations } from "../data/translations";
-import { getImage } from "../lib/images";
+import { useTilt } from "../hooks/useTilt";
 import ProductImage from "./ProductImage";
 import Reveal from "./motion/Reveal";
 
@@ -43,11 +42,6 @@ export default function ProductCard({ product, index = 0, sizes }) {
   const lowStock = product.stock != null && product.stock > 0 && product.stock <= 3;
   const outOfStock = product.stock != null && product.stock <= 0;
   const requiresSize = Boolean(product.sizes?.length);
-
-  const orderUrl = buildProductOrderUrl(product, {
-    size: selectedSize,
-    quantity: 1,
-  });
 
   const requireSize = () => {
     showNotice("error", isRussian ? "Сначала выберите размер" : "Avval o'lchamni tanlang");

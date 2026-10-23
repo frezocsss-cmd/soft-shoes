@@ -1,25 +1,22 @@
-import { useCallback, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  ArrowLeft,
-  CheckCircle2,
+  ArrowRight,
+  Check,
+  MapPin,
+  MessageCircle,
   Minus,
   Plus,
   ShoppingBag,
   Trash2,
-  TriangleAlert,
   Truck,
-  UserRound,
-  Phone,
-  MapPin,
-  MessageCircle,
 } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 import { useCart } from "../context/CartContext";
-import { useProducts } from "../context/useProducts";
 import { formatPrice } from "../data/productUtils";
-import { createOrder } from "../lib/orderRepository";
-import { buildCartOrderMessage, getTelegramMessageUrl } from "../lib/telegram";
-import { getImage } from "../lib/images";
+import { translations } from "../data/translations";
+import ProductImage from "../components/ProductImage";
+import Reveal from "../components/motion/Reveal";
 
 const initialCustomer = {
   name: "",
@@ -49,7 +46,6 @@ export default function CartPage() {
   const { lang } = useLanguage();
   const t = translations[lang] ?? translations.uz;
   const { items, subtotal, count, updateQuantity, removeItem, clearCart } = useCart();
-  const { isCloudEnabled } = useProducts();
   const [customer, setCustomer] = useState(initialCustomer);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -58,11 +54,6 @@ export default function CartPage() {
   const [copied, setCopied] = useState(false);
 
   const isRussian = lang === "ru";
-
-  const telegramUrl = useMemo(
-    () => (items.length ? getTelegramMessageUrl(buildCartOrderMessage({ items })) : null),
-    [items],
-  );
 
   if (placedOrder) {
     return (
@@ -508,20 +499,25 @@ export default function CartPage() {
                 </div>
 
                 <div aria-live="polite">
-                {fallbackUrl ? (
-                  <a
-                    href={fallbackUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-outline btn-block"
-                  >
-                    <MessageCircle size={16} aria-hidden="true" />
-                    Telegramda ochish
-                  </a>
-                ) : null}
-                <p className="text-center text-[10px] leading-5 text-muted">
-                  Buyurtma matnini nusxalab @Muniradmsh ga yuboring. Avtomatik yuborish mumkin emas.
-                </p>
+                  {error ? (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-[11px] font-semibold leading-5 text-rose-700">
+                      {error}
+                    </div>
+                  ) : null}
+                  {fallbackUrl ? (
+                    <a
+                      href={fallbackUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-outline btn-block"
+                    >
+                      <MessageCircle size={16} aria-hidden="true" />
+                      Telegramda ochish
+                    </a>
+                  ) : null}
+                  <p className="text-center text-[10px] leading-5 text-muted">
+                    Buyurtma matnini nusxalab @Muniradmsh ga yuboring. Avtomatik yuborish mumkin emas.
+                  </p>
                 </div>
 
                 <button
@@ -532,19 +528,6 @@ export default function CartPage() {
                   {submitting ? "Yuborilmoqda..." : "Buyurtma berish"}
                   {!submitting ? <ArrowRight size={17} aria-hidden="true" /> : null}
                 </button>
-
-                {telegramUrl ? (
-                  <a
-                    href={telegramUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-outline btn-block"
-                  >
-                    <MessageCircle size={16} aria-hidden="true" />
-                    {t.cart.orderTelegram}
-                  </a>
-                ) : null}
-                <p className="text-center text-[10px] leading-5 text-muted">{t.cart.telegramNote}</p>
               </form>
             </div>
           </Reveal>

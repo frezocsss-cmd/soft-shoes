@@ -165,21 +165,6 @@ export function getTelegramMessageUrl(message) {
   return `https://t.me/share/url?url=${encodeURIComponent(siteOrigin())}&text=${encodeURIComponent(message)}`;
 }
 
-export async function sendOrderToTelegram(message) {
-  if (!message) return false;
-
-  try {
-    const response = await fetch("/api/telegram-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
 export const isDirectTelegramOrder = Boolean(TELEGRAM_ADMIN_USERNAME);
 
 export function buildProductOrderUrl(product, options) {

@@ -31,6 +31,7 @@ export default function ProductDetailsPage() {
   const [selection, setSelection] = useState({ id: null, size: null, quantity: 1 });
   const [feedback, setFeedback] = useState(null);
   const [added, setAdded] = useState(false);
+  const [preparedMessage, setPreparedMessage] = useState("");
 
   const product = products.find((item) => String(item.id) === String(productId));
 
@@ -124,8 +125,8 @@ export default function ProductDetailsPage() {
   };
 
   const handleOrderClick = (event) => {
+    event.preventDefault();
     if (!canOrder) {
-      event.preventDefault();
       if (!isAvailable) {
         showFeedback("error", isRussian ? "Товара нет в наличии" : "Mahsulot tugagan");
         return;
@@ -168,6 +169,7 @@ export default function ProductDetailsPage() {
     const telegramChatUrl = "https://t.me/Muniradmsh";
     const directUrl = `${telegramChatUrl}?text=${encodeURIComponent(message)}`;
 
+    setPreparedMessage(message);
     void navigator.clipboard?.writeText(message).catch(() => {});
     showFeedback(
       "success",
@@ -175,7 +177,6 @@ export default function ProductDetailsPage() {
         ? "Текст заказа скопирован. Откройте чат с @Muniradmsh и отправьте его."
         : "Buyurtma matni nusxalandi. @Muniradmsh bilan chatni oching va yuboring.",
     );
-    window.open(telegramChatUrl, "_blank", "noopener,noreferrer");
     window.open(directUrl, "_blank", "noopener,noreferrer");
   };
 
@@ -373,6 +374,21 @@ export default function ProductDetailsPage() {
               </p>
             ) : null}
           </div>
+
+          {preparedMessage ? (
+            <div className="mt-3 rounded-xl border border-line bg-white p-3">
+              <p className="text-[11px] font-bold text-ink">
+                {isRussian
+                  ? "Текст заказа (скопируйте и отправьте в @Muniradmsh)"
+                  : "Buyurtma matni (@Muniradmsh ga nusxalab yuboring)"}
+              </p>
+              <textarea
+                readOnly
+                value={preparedMessage}
+                className="mt-2 h-48 w-full rounded-lg border border-line bg-canvas p-2.5 text-[11px] leading-5 text-ink"
+              />
+            </div>
+          ) : null}
 
           <ul className="mt-4 grid gap-3 sm:grid-cols-3">
             {perkItems.map(({ icon: Icon, title, text }) => (
