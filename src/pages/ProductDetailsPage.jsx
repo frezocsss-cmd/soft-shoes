@@ -16,7 +16,7 @@ import { useProducts } from "../context/useProducts";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../data/productUtils";
 import { translations } from "../data/translations";
-import { buildProductOrderUrl } from "../lib/telegram";
+import { buildProductOrderUrl, getTelegramMessageUrl } from "../lib/telegram";
 import ProductCard from "../components/ProductCard";
 import ProductGallery from "../components/ProductGallery";
 import SectionHeading from "../components/SectionHeading";
@@ -166,8 +166,7 @@ export default function ProductDetailsPage() {
       "Manba: Soft Shoes onlayn do‘koni",
     );
     const message = messageLines.join("\n");
-    const telegramChatUrl = "https://t.me/Muniradmsh";
-    const directUrl = `${telegramChatUrl}?text=${encodeURIComponent(message)}`;
+    const directUrl = getTelegramMessageUrl(message);
 
     setPreparedMessage(message);
     void navigator.clipboard?.writeText(message).catch(() => {});
@@ -177,7 +176,7 @@ export default function ProductDetailsPage() {
         ? "Текст заказа скопирован. Откройте чат с @Muniradmsh и отправьте его."
         : "Buyurtma matni nusxalandi. @Muniradmsh bilan chatni oching va yuboring.",
     );
-    window.open(directUrl, "_blank", "noopener,noreferrer");
+    if (directUrl) window.open(directUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleAddToCart = () => {

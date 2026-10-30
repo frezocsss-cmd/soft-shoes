@@ -4,8 +4,6 @@ import {
   ArrowUpRight,
   Boxes,
   CheckCircle2,
-  CircleDollarSign,
-  ClipboardList,
   Cloud,
   Database,
   ExternalLink,
@@ -21,31 +19,21 @@ import {
 } from "lucide-react";
 import BrandLogo from "../components/BrandLogo";
 import AdminLogin from "../components/admin/AdminLogin";
-import AdminOrders from "../components/admin/AdminOrders";
 import AdminProducts from "../components/admin/AdminProducts";
 import ProductForm from "../components/admin/ProductForm";
 import { AdminDesktopNav, AdminMobileNav } from "../components/admin/AdminNav";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/useProducts";
-import { formatPrice } from "../data/productUtils";
 import { TELEGRAM_LINK } from "../data/config";
-import { fetchOrders, updateOrderStatus, ORDER_STATUS_LABELS } from "../lib/orderRepository";
 
-const SECTIONS = new Set(["overview", "products", "orders", "settings"]);
+const SECTIONS = new Set(["overview", "products", "settings"]);
 
 const SECTION_META = {
   overview: { eyebrow: "Store overview", title: "Boshqaruv paneli" },
   products: { eyebrow: "Inventory", title: "Mahsulotlar" },
-  orders: { eyebrow: "Orders", title: "Buyurtmalar" },
   settings: { eyebrow: "Workspace", title: "Sozlamalar" },
 };
 
-const orderDateFormatter = new Intl.DateTimeFormat("uz-UZ", {
-  day: "2-digit",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 function AdminSetup() {
   return (
@@ -110,21 +98,6 @@ function StatCard({ label, value, hint, icon: Icon, tone, delay = 0 }) {
   );
 }
 
-function StatusPill({ status }) {
-  const tones = {
-    new: "bg-blue-50 text-blue-700",
-    confirmed: "bg-amber-50 text-amber-700",
-    shipped: "bg-violet-50 text-violet-700",
-    completed: "bg-emerald-50 text-emerald-700",
-    cancelled: "bg-rose-50 text-rose-700",
-  };
-  return (
-    <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold ${tones[status] || "bg-canvas text-muted"}`}>
-      {ORDER_STATUS_LABELS[status] || status}
-    </span>
-  );
-}
-
 export default function AdminPage() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -135,7 +108,6 @@ export default function AdminPage() {
     updateProduct,
     deleteProduct,
     refreshProducts,
-    isCloudEnabled,
     dataSource,
     syncStatus,
     syncError,
@@ -145,10 +117,6 @@ export default function AdminPage() {
   const section = SECTIONS.has(segment) ? segment : "overview";
   const meta = SECTION_META[section];
 
-  const [orders, setOrders] = useState([]);
-  const [ordersStatus, setOrdersStatus] = useState("idle");
-  const [ordersError, setOrdersError] = useState("");
-  const [statusBusyId, setStatusBusyId] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [operationBusy, setOperationBusy] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -164,47 +132,7 @@ export default function AdminPage() {
 
   useEffect(() => () => window.clearTimeout(noticeTimer.current), []);
 
-  useEffect(() => {
-    if (loading || !configured || isAdmin) return;
-    if (pathname !== "/admin") navigate("/admin", { replace: true });
-  }, [configured, isAdmin, loading, navigate, pathname]);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    if (segment && !SECTIONS.has(segment)) navigate("/admin", { replace: true });
-  }, [isAdmin, navigate, segment]);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    document.title = `${meta.title} — Soft Shoes Admin`;
-  }, [isAdmin, meta.title]);
-
-  const loadOrders = useCallback(async () => {
-    if (!isCloudEnabled) return false;
-    setOrdersStatus("loading");
-    setOrdersError("");
-    try {
-      const data = await fetchOrders();
-      setOrders(data);
-      setOrdersStatus("ready");
-      return true;
-    } catch (error) {
-      setOrdersError(error.message || "Buyurtmalarni yuklab bo'lmadi");
-      setOrdersStatus("error");
-      return false;
-    }
-  }, [isCloudEnabled]);
-
-  useEffect(() => {
-    if (isAdmin && isCloudEnabled) loadOrders();
-  }, [isAdmin, isCloudEnabled, loadOrders]);
-
-  const newOrdersCount = useMemo(
-    () => orders.filter((order) => order.status === "new").length,
-    [orders],
-  );
   const productsReady = syncStatus === "ready" || syncStatus === "local";
-  const ordersReady = ordersStatus === "ready";
   const totalStock = useMemo(
     () => products.reduce((sum, product) => sum + (product.stock ?? 0), 0),
     [products],
@@ -212,13 +140,6 @@ export default function AdminPage() {
   const lowStock = useMemo(
     () => products.filter((product) => product.stock != null && product.stock <= 3),
     [products],
-  );
-  const revenue = useMemo(
-    () =>
-      orders
-        .filter((order) => order.status !== "cancelled")
-        .reduce((sum, order) => sum + Number(order.total || 0), 0),
-    [orders],
   );
 
   const goToForm = () => {
@@ -269,26 +190,12 @@ export default function AdminPage() {
     }
   };
 
-  const handleStatusChange = async (orderId, status) => {
-    setStatusBusyId(orderId);
-    try {
-      const updated = await updateOrderStatus(orderId, status);
-      setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
-      showNotice("success", "Buyurtma holati yangilandi.");
-    } catch (error) {
-      showNotice("error", error.message || "Buyurtma holatini yangilab bo'lmadi");
-    } finally {
-      setStatusBusyId(null);
-    }
-  };
 
   const handleRefresh = async () => {
     setOperationBusy(true);
     try {
       await refreshProducts();
-      const ordersOk = await loadOrders();
-      if (ordersOk) showNotice("success", "Ma'lumotlar yangilandi.");
-      else showNotice("error", "Mahsulotlar yangilandi, buyurtmalarni olib bo'lmadi.");
+      showNotice("success", "Ma'lumotlar yangilandi.");
     } catch (error) {
       showNotice("error", error.message || "Ma'lumotlarni yangilab bo'lmadi");
     } finally {
@@ -331,24 +238,6 @@ export default function AdminPage() {
       icon: Boxes,
       tone: "bg-emerald-50 text-emerald-700",
     },
-    {
-      label: "Yangi buyurtmalar",
-      value: ordersReady ? newOrdersCount : "—",
-      hint: ordersReady
-        ? `${orders.length} ta jami buyurtma`
-        : ordersStatus === "loading"
-          ? "Yuklanmoqda..."
-          : "Buyurtmalar manbasi mavjud emas",
-      icon: ClipboardList,
-      tone: "bg-amber-50 text-amber-700",
-    },
-    {
-      label: "Buyurtma summasi",
-      value: ordersReady ? formatPrice(revenue) : "—",
-      hint: ordersReady ? "Bekor qilinganlarsiz" : "Hisoblanmadi",
-      icon: CircleDollarSign,
-      tone: "bg-violet-50 text-violet-700",
-    },
   ];
 
   return (
@@ -367,34 +256,9 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <AdminDesktopNav newOrdersCount={ordersReady ? newOrdersCount : 0} />
+        <AdminDesktopNav />
 
         <div className="relative mt-auto space-y-3">
-          <Link
-            to="/admin/orders"
-            className="block rounded-2xl border border-white/10 bg-white/[0.045] p-4 transition hover:border-gold-soft/30 hover:bg-white/[0.075]"
-          >
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.14em] text-gold-soft">
-                <span className="size-1.5 rounded-full bg-gold-soft" aria-hidden="true" />
-                Yangi buyurtmalar
-              </span>
-              <ArrowUpRight size={14} className="text-white/40" aria-hidden="true" />
-            </div>
-            <p className="mt-3 font-display text-3xl font-semibold">
-              {ordersReady ? newOrdersCount : "—"}
-            </p>
-            <p className="mt-1 text-[10px] font-semibold text-white/35">
-              {!ordersReady
-                ? ordersStatus === "loading"
-                  ? "Buyurtmalar yuklanmoqda..."
-                  : "Buyurtmalar manbasi mavjud emas"
-                : newOrdersCount
-                  ? "Ko'rib chiqish kutilmoqda"
-                  : "Hozircha yangi buyurtma yo'q"}
-            </p>
-          </Link>
-
           <Link
             to="/"
             className="flex items-center justify-center gap-2 rounded-full border border-white/15 px-4 py-2.5 text-[11px] font-bold text-white/65 transition hover:border-white/30 hover:text-white"
@@ -530,9 +394,6 @@ export default function AdminPage() {
                   <button type="button" onClick={handleCreate} className="btn btn-primary btn-sm">
                     <Plus size={15} aria-hidden="true" /> Mahsulot qo'shish
                   </button>
-                  <Link to="/admin/orders" className="btn btn-outline btn-sm">
-                    <ClipboardList size={15} aria-hidden="true" /> Buyurtmalar
-                  </Link>
                 </div>
               </div>
 
@@ -556,122 +417,54 @@ export default function AdminPage() {
                 </div>
               ) : null}
 
-              <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-                <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-                  <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-                    <div>
-                      <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-gold">Live</p>
-                      <h3 className="mt-1 text-base font-extrabold text-ink">So'nggi buyurtmalar</h3>
-                    </div>
-                    <Link
-                      to="/admin/orders"
-                      className="inline-flex items-center gap-1 text-[11px] font-extrabold text-gold hover:text-gold-deep"
-                    >
-                      Barchasi <ArrowUpRight size={13} aria-hidden="true" />
-                    </Link>
+              <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+                <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-gold">Inventory</p>
+                    <h3 className="mt-1 text-base font-extrabold text-ink">Kam qolgan mahsulotlar</h3>
                   </div>
+                  <Link
+                    to="/admin/products"
+                    className="inline-flex items-center gap-1 text-[11px] font-extrabold text-gold hover:text-gold-deep"
+                  >
+                    Katalog <ArrowUpRight size={13} aria-hidden="true" />
+                  </Link>
+                </div>
 
-                  {ordersStatus === "loading" && !orders.length ? (
-                    <div className="space-y-2 p-4">
-                      {Array.from({ length: 3 }, (_, index) => (
-                        <div key={index} className="skeleton h-12 rounded-xl" />
-                      ))}
-                    </div>
-                  ) : ordersError ? (
-                    <div className="p-5 text-xs font-semibold text-amber-800">
-                      Buyurtmalarni yuklab bo'lmadi.
-                      <button type="button" onClick={loadOrders} className="ml-1 font-extrabold underline">
-                        Qayta urinish
-                      </button>
-                    </div>
-                  ) : orders.length ? (
-                    <ul className="divide-y divide-line">
-                      {orders.slice(0, 5).map((order) => (
-                        <li key={order.id} className="flex items-center gap-3 px-5 py-3.5">
-                          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-canvas text-[10px] font-extrabold text-muted">
-                            {order.customer_name?.slice(0, 1)?.toUpperCase() || "?"}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-extrabold text-ink">
-                              #{order.order_number} · {order.customer_name}
-                            </p>
-                            <p className="mt-0.5 text-[10px] font-semibold text-muted">
-                              {order.created_at
-                                ? orderDateFormatter.format(new Date(order.created_at))
-                                : "—"}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs font-extrabold text-ink">{formatPrice(order.total)}</p>
-                            <div className="mt-1">
-                              <StatusPill status={order.status} />
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="grid min-h-52 place-items-center p-6 text-center">
-                      <div>
-                        <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-canvas text-muted">
-                          <ClipboardList size={20} />
+                {lowStock.length ? (
+                  <ul className="divide-y divide-line">
+                    {lowStock.slice(0, 5).map((product) => (
+                      <li key={product.id} className="flex items-center gap-3 px-5 py-3.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-extrabold text-ink">{product.name}</p>
+                          <p className="mt-0.5 text-[10px] font-semibold text-muted">
+                            {product.category}
+                          </p>
+                        </div>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
+                            product.stock <= 0
+                              ? "bg-rose-50 text-rose-700"
+                              : "bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {product.stock <= 0 ? "Tugagan" : `${product.stock} dona`}
                         </span>
-                        <p className="mt-3 text-xs font-extrabold text-ink">Hali buyurtmalar yo'q</p>
-                        <p className="mt-1 text-[10px] text-muted">Savdo boshlanganda shu yerda ko'rinadi.</p>
-                      </div>
-                    </div>
-                  )}
-                </section>
-
-                <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-                  <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="grid min-h-52 place-items-center p-6 text-center">
                     <div>
-                      <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-gold">Inventory</p>
-                      <h3 className="mt-1 text-base font-extrabold text-ink">Kam qolgan mahsulotlar</h3>
+                      <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
+                        <CheckCircle2 size={20} />
+                      </span>
+                      <p className="mt-3 text-xs font-extrabold text-ink">Ombor holati yaxshi</p>
+                      <p className="mt-1 text-[10px] text-muted">Kam qolgan mahsulotlar yo'q.</p>
                     </div>
-                    <Link
-                      to="/admin/products"
-                      className="inline-flex items-center gap-1 text-[11px] font-extrabold text-gold hover:text-gold-deep"
-                    >
-                      Katalog <ArrowUpRight size={13} aria-hidden="true" />
-                    </Link>
                   </div>
-
-                  {lowStock.length ? (
-                    <ul className="divide-y divide-line">
-                      {lowStock.slice(0, 5).map((product) => (
-                        <li key={product.id} className="flex items-center gap-3 px-5 py-3.5">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-extrabold text-ink">{product.name}</p>
-                            <p className="mt-0.5 text-[10px] font-semibold text-muted">
-                              {product.category}
-                            </p>
-                          </div>
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
-                              product.stock <= 0
-                                ? "bg-rose-50 text-rose-700"
-                                : "bg-amber-50 text-amber-700"
-                            }`}
-                          >
-                            {product.stock <= 0 ? "Tugagan" : `${product.stock} dona`}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="grid min-h-52 place-items-center p-6 text-center">
-                      <div>
-                        <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
-                          <CheckCircle2 size={20} />
-                        </span>
-                        <p className="mt-3 text-xs font-extrabold text-ink">Ombor holati yaxshi</p>
-                        <p className="mt-1 text-[10px] text-muted">Kam qolgan mahsulotlar yo'q.</p>
-                      </div>
-                    </div>
-                  )}
-                </section>
-              </div>
+                )}
+              </section>
             </div>
           ) : null}
 
@@ -696,16 +489,6 @@ export default function AdminPage() {
             </div>
           ) : null}
 
-          {section === "orders" ? (
-            <AdminOrders
-              orders={orders}
-              status={ordersStatus}
-              error={ordersError}
-              busyId={statusBusyId}
-              onRefresh={loadOrders}
-              onStatusChange={handleStatusChange}
-            />
-          ) : null}
 
           {section === "settings" ? (
             <div className="space-y-5">
@@ -828,7 +611,7 @@ export default function AdminPage() {
         </main>
       </div>
 
-      <AdminMobileNav newOrdersCount={ordersReady ? newOrdersCount : 0} />
+      <AdminMobileNav />
     </div>
   );
 }

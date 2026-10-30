@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { resolveAdminLoginEmail } from "../data/config";
 import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
 
 const AuthContext = createContext(null);
@@ -8,6 +9,13 @@ async function readAdminMembership(client) {
   if (error) throw new Error(`Admin huquqini tekshirish xatosi: ${error.message}`);
   return Boolean(data);
 }
+
+const getRecoveryRedirectUrl = () => {
+  const configuredSite = import.meta.env.VITE_SITE_URL?.trim();
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const base = (configuredSite || origin).replace(/\/+$/, "");
+  return `${base}/admin/reset-password`;
+};
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -38,7 +46,7 @@ export function AuthProvider({ children }) {
         const admin = await readAdminMembership(client);
         if (!active) return;
         setIsAdmin(admin);
-        if (!admin) setError("Bu email store_admins jadvalida yo'q. Admin huquqi berilmagan.");
+        if (!admin) setError("Bu hisob store_admins jadvalida yo'q. Admin huquqi berilmagan.");
       } catch (verifyError) {
         if (!active) return;
         setIsAdmin(false);
@@ -92,7 +100,7 @@ export function AuthProvider({ children }) {
           const admin = await readAdminMembership(client);
           if (!active) return;
           setIsAdmin(admin);
-          if (!admin) setError("Bu email store_admins jadvalida yo'q. Admin huquqi berilmagan.");
+          if (!admin) setError("Bu hisob store_admins jadvalida yo'q. Admin huquqi berilmagan.");
         } catch (verifyError) {
           if (!active) return;
           setIsAdmin(false);
@@ -110,14 +118,17 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const signIn = useCallback(async (email, password) => {
+  const signIn = useCallback(async (identifier, password) => {
     const client = await getSupabase();
     if (!client) throw new Error("Supabase sozlanmagan");
 
     setLoading(true);
     setError("");
     try {
-      const { error: signInError } = await client.auth.signInWithPassword({ email, password });
+      const { error: signInError } = await client.auth.signInWithPassword({
+        email: resolveAdminLoginEmail(identifier),
+        password,
+      });
       if (signInError) throw signInError;
     } catch (signInError) {
       setLoading(false);
@@ -134,6 +145,39 @@ export function AuthProvider({ children }) {
     setError("");
   }, []);
 
+  const requestPasswordReset = useCallback(async (email) => {
+    const client = await getSupabase();
+    if (!client) throw new Error("Supabase sozlanmagan");
+
+    const value = String(email ?? "").trim();
+    if (!value) throw new Error("Email manzilini kiriting.");
+
+    setError("");
+    const { error: resetError } = await client.auth.resetPasswordForEmail(value, {
+      redirectTo: getRecoveryRedirectUrl(),
+    });
+    if (resetError) {
+      setError(resetError.message);
+      throw resetError;
+    }
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword) => {
+    const client = await getSupabase();
+    if (!client) throw new Error("Supabase sozlanmagan");
+
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error("Yangi parol kamida 6 belgidan iborat bo'lishi kerak.");
+    }
+
+    setError("");
+    const { error: updateError } = await client.auth.updateUser({ password: newPassword });
+    if (updateError) {
+      setError(updateError.message);
+      throw updateError;
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       configured: isSupabaseConfigured,
@@ -144,9 +188,11 @@ export function AuthProvider({ children }) {
       error,
       signIn,
       signOut,
+      requestPasswordReset,
+      updatePassword,
       clearError: () => setError(""),
     }),
-    [error, isAdmin, loading, session, signIn, signOut],
+    [error, isAdmin, loading, session, signIn, signOut, requestPasswordReset, updatePassword],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -16,6 +16,7 @@ const CartPage = lazy(() => import("./pages/CartPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function LegacyProductRedirect() {
@@ -45,6 +46,7 @@ function App() {
                     <Route path="contact" element={<ContactPage />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Route>
+                  <Route path="admin/reset-password" element={<ResetPasswordPage />} />
                   <Route path="admin/*" element={<AdminPage />} />
                 </Routes>
               </Suspense>

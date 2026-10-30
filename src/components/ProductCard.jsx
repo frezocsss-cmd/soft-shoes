@@ -4,6 +4,7 @@ import { Check, MessageCircle, ShoppingBag } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../data/productUtils";
+import { getTelegramMessageUrl } from "../lib/telegram";
 import { useTilt } from "../hooks/useTilt";
 import ProductImage from "./ProductImage";
 import Reveal from "./motion/Reveal";
@@ -226,11 +227,9 @@ export default function ProductCard({ product, index = 0, sizes }) {
                       "Manba: Soft Shoes onlayn do‘koni",
                     );
                     const message = messageLines.join("\n");
-                    const telegramChatUrl = "https://t.me/Muniradmsh";
-                    const directUrl = `${telegramChatUrl}?text=${encodeURIComponent(message)}`;
+                    const telegramUrl = getTelegramMessageUrl(message);
                     void navigator.clipboard?.writeText(message).catch(() => {});
-                    window.open(telegramChatUrl, "_blank", "noopener,noreferrer");
-                    window.open(directUrl, "_blank", "noopener,noreferrer");
+                    if (telegramUrl) window.open(telegramUrl, "_blank", "noopener,noreferrer");
                   }}
                   className="btn btn-primary btn-sm px-3"
                   aria-label={`${name} — ${isRussian ? "Заказ через Telegram" : "Telegram orqali buyurtma"}`}

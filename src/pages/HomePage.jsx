@@ -35,19 +35,19 @@ export default function HomePage() {
       key: "Erkaklar",
       title: isRussian ? "Мужская коллекция" : "Erkaklar kolleksiyasi",
       caption: isRussian ? "Классика и комфорт" : "Klassik va qulaylik",
-      product: products[1] ?? products[0],
+      product: products.find((product) => product.category === "Erkaklar") ?? products[0],
     },
     {
       key: "Ayollar",
       title: isRussian ? "Женская коллекция" : "Ayollar kolleksiyasi",
       caption: isRussian ? "Мягкие образы" : "Nafis va yumshoq",
-      product: products[2] ?? products[0],
+      product: products.find((product) => product.category === "Ayollar") ?? products[0],
     },
     {
       key: "Unisex",
       title: isRussian ? "Unisex" : "Unisex kollektsiya",
       caption: isRussian ? "Свобода стиля" : "Stil chegarasi yo'q",
-      product: products[4] ?? products[0],
+      product: products.find((product) => product.category === "Unisex") ?? products[0],
     },
   ];
 
@@ -347,9 +347,9 @@ export default function HomePage() {
         <div className="shell">
           <div className="card grid overflow-hidden lg:grid-cols-2">
             <div className="media min-h-[240px] lg:min-h-[360px]">
-              {products[4] ? (
+              {products[4] ?? products[0] ? (
                 <ProductImage
-                  product={products[4]}
+                  product={products[4] ?? products[0]}
                   alt={t.home.storeEyebrow}
                   className="size-full"
                   sizes="(min-width: 1024px) 48vw, 92vw"

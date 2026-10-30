@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, Plus, RefreshCw, Save, Star, Trash2, X } from "lucide-react";
 import { PRODUCT_BADGES, PRODUCT_CATEGORIES } from "../../data/productUtils";
 import { useAuth } from "../../context/AuthContext";
+import { useProducts } from "../../context/useProducts";
 import { isProductImageUrl, removeProductImage, uploadProductImage } from "../../lib/imageStorage";
 
 const inputClass =
@@ -87,6 +88,7 @@ function Field({ label, required, hint, children }) {
 
 export default function ProductForm({ product = null, busy = false, onSubmit, onCancel }) {
   const { isAdmin } = useAuth();
+  const { products } = useProducts();
   const [form, setForm] = useState(() => productToForm(product));
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");

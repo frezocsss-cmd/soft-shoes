@@ -14,7 +14,9 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../data/productUtils";
+import { TELEGRAM_ADMIN_USERNAME } from "../data/config";
 import { translations } from "../data/translations";
+import { getTelegramAdminChatUrl, getTelegramMessageUrl } from "../lib/telegram";
 import ProductImage from "../components/ProductImage";
 import Reveal from "../components/motion/Reveal";
 
@@ -54,6 +56,7 @@ export default function CartPage() {
   const [copied, setCopied] = useState(false);
 
   const isRussian = lang === "ru";
+  const adminHandle = `@${TELEGRAM_ADMIN_USERNAME}`;
 
   if (placedOrder) {
     return (
@@ -92,7 +95,7 @@ export default function CartPage() {
         <div className="mt-6 w-full max-w-2xl rounded-2xl border border-line bg-white p-5 text-left">
           <p className="text-xs font-bold text-ink">Buyurtma matni (nusxalash uchun)</p>
           <p className="mt-1 text-[11px] text-muted">
-            Telegram orqali @Muniradmsh ga yuborishingiz kerak. Buyurtma avtomatik yuborilmaydi.
+            Telegram orqali {adminHandle} ga yuborishingiz kerak. Buyurtma avtomatik yuborilmaydi.
           </p>
           <textarea
             readOnly
@@ -125,7 +128,7 @@ export default function CartPage() {
               className="btn btn-primary btn-lg btn-block"
             >
               <MessageCircle size={18} aria-hidden="true" />
-              Telegramda ochish (@Muniradmsh)
+              Telegramda ochish ({adminHandle})
             </a>
           ) : null}
           <p className="text-[11px] leading-5 text-muted">
@@ -238,8 +241,8 @@ export default function CartPage() {
     messageLines.push("", "Holat: Yangi buyurtma", "Manba: Soft Shoes onlayn do‘koni");
 
     const message = messageLines.join("\n");
-    const telegramChatUrl = "https://t.me/Muniradmsh";
-    const directUrl = `${telegramChatUrl}?text=${encodeURIComponent(message)}`;
+    const telegramChatUrl = getTelegramAdminChatUrl();
+    const directUrl = getTelegramMessageUrl(message) || telegramChatUrl;
 
     setSubmitting(true);
     try {
@@ -253,7 +256,7 @@ export default function CartPage() {
       clearCart();
       setCustomer(initialCustomer);
       setSubmitting(false);
-      window.open(telegramChatUrl, "_blank", "noopener,noreferrer");
+      window.open(directUrl, "_blank", "noopener,noreferrer");
       setFallbackUrl(directUrl);
       return;
     } catch (submitError) {
@@ -516,7 +519,7 @@ export default function CartPage() {
                     </a>
                   ) : null}
                   <p className="text-center text-[10px] leading-5 text-muted">
-                    Buyurtma matnini nusxalab @Muniradmsh ga yuboring. Avtomatik yuborish mumkin emas.
+                    Buyurtma matnini nusxalab {adminHandle} ga yuboring. Avtomatik yuborish mumkin emas.
                   </p>
                 </div>
 

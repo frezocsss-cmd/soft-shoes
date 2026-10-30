@@ -56,9 +56,9 @@ export default function AboutPage() {
               ) : null}
             </Reveal>
             <Reveal from="up" delay={80} className="media mt-8 aspect-[4/5] rounded-2xl border border-line">
-              {products[2] ? (
+              {products[2] ?? products[0] ? (
                 <ProductImage
-                  product={products[2]}
+                  product={products[2] ?? products[0]}
                   alt="Soft Shoes collection"
                   className="size-full"
                   sizes="(min-width: 1024px) 26vw, 45vw"
